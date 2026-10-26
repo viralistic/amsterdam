@@ -315,6 +315,8 @@ function updateRegion(p) {
 
 // PvP happens only in the Wilderness, between players of the same mode, within the level range.
 function pvpAllowed(a, b) {
+  const ia = interiorAt(a.x, a.z);
+  if (ia?.pvp && ia === interiorAt(b.x, b.z)) return true; // arenas: anyone inside may fight anyone inside
   if (!a.wild || !b.wild) return false;
   if (a.real !== b.real) return false;
   return Math.abs(cbLevel(a) - cbLevel(b)) <= Math.min(a.wild, b.wild);
@@ -727,8 +729,8 @@ function attackTarget(p, t) {
     if (t === p) return false;
     if (p.duel) return p.duel.opp === t;
     if (!pvpAllowed(p, t)) return false;
-    // attacking someone who hasn't attacked you first gets you skulled
-    if (!(p.aggressors.get(t.id) > now() - 20 * 60_000)) {
+    // attacking someone who hasn't attacked you first gets you skulled (not in safe arenas)
+    if (!interiorAt(p.x, p.z)?.safeDeath && !(p.aggressors.get(t.id) > now() - 20 * 60_000)) {
       if (!(p.skullUntil > now())) msg(p, 'You have been skulled! You will lose all your items if you die.', 'warn');
       p.skullUntil = now() + 20 * 60_000;
     }
@@ -843,6 +845,8 @@ function die(p, killer) {
     if (coins) msg(p, `You dropped ${coins} coins where you fell. ${killerName} might grab them!`);
     if (isPlayer(killer)) { msg(killer, `You have defeated ${p.name}!`, 'duel'); killer.rec.hp = lv(killer, 'hitpoints'); }
     endDuel(p, null);
+  } else if (interiorAt(p.x, p.z)?.safeDeath) {
+    msg(p, 'This is a safe area: you keep all your items.');
   } else if (p.wild) {
     // Wilderness death: keep your 3 most valuable items (none when skulled); the rest stays where you fell
     const all = [];
@@ -864,8 +868,9 @@ function die(p, killer) {
   p.rec.hp = lv(p, 'hitpoints');
   p.rec.prayer = lv(p, 'prayer');
   p.skullUntil = 0;
-  p.inside = false;
-  p.x = SPAWN.x; p.z = SPAWN.z; p.path = []; p.pending = null;
+  const respawnAt = interiorAt(p.x, p.z)?.respawn || SPAWN;
+  p.inside = interiorAt(respawnAt.x, respawnAt.z) !== undefined;
+  p.x = respawnAt.x; p.z = respawnAt.z; p.path = []; p.pending = null;
   p.real = false; p.gps = null; p.deadUntil = now() + 3000;
   send(p, { t: 'death' });
   updateRegion(p);
@@ -976,8 +981,8 @@ function doAction(p, a, tgt) {
       return;
     }
     if (a.action === 'attack') {
-      if (!p.wild || !tgt.wild) return msg(p, 'You can only attack other players in the Wilderness.');
-      if (p.real !== tgt.real) return msg(p, p.real ? "You can't hit a ghost from the real world." : "Ghosts can't hurt real-life players.");
+      if ((!p.wild || !tgt.wild) && !interiorAt(p.x, p.z)?.pvp) return msg(p, 'You can only attack other players in the Wilderness.');
+      if (p.real !== tgt.real && !interiorAt(p.x, p.z)?.pvp) return msg(p, p.real ? "You can't hit a ghost from the real world." : "Ghosts can't hurt real-life players.");
       if (!pvpAllowed(p, tgt)) return msg(p, 'Your combat levels are too far apart for this Wilderness level.');
       if (attackTarget(p, tgt)) { p.target = tgt; p.chase = 0; }
       return;

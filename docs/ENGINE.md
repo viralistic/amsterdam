@@ -69,6 +69,7 @@ Spawning and world
 - `api.interior({ id, name, wild?, rooms: [{ x0, z0, x1, z1, floor, wall, h, doors: [[side 'n'|'s'|'e'|'w', offset, width]] }], floors?: [[color, [x,z,...]]], walls?: [[x0,z0,x1,z1,h,color]] })`
   Interiors must use **x >= 30000 and z >= 30000**. Allocations: quests x 30000-33999, combat x 34000-37999, production x 38000-39999, economy x 40000-41999 (z 30000-34000 for all).
   Real-life players entering an interior stop following GPS until they leave.
+  Extra interior flags: `pvp: true` (anyone inside may attack anyone inside, regardless of mode or level), `safeDeath: true` (no item loss, no skull), `respawn: {x, z}` (where you respawn after dying inside), `wild: level` (shows as Wilderness, item loss unless safeDeath).
 
 Players and items
 - `api.msg(p, text, kind?)` kinds: game, warn, level, real, duel; `api.send(p, obj)`; `api.say(entity, 'p'|'n', text)`
