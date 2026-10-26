@@ -14,7 +14,8 @@ Plays in any browser (desktop or phone) and installs as an app (PWA) from the br
   - challenge other real-life players nearby to a **duel** (loser drops their coins and respawns at Centraal as a ghost).
   - Walking earns **Exploring** XP, and visiting landmarks (Dam, Rembrandtplein, Vondelpark, ...) gives a bonus.
 - **Privacy:** real-life players are only visible to other real-life players, so ghosts can't track people around the city. Set `REAL_VISIBLE_TO_GHOSTS=1` to change that.
-- **Map:** the 🗺️ button opens Google Maps (map, satellite and Street View) at your character's position.
+- **Map:** the map button opens Google Maps (map, satellite and Street View) at your character's position.
+- **The city:** every street, canal, bridge, park and building comes from OpenStreetMap. Canal houses get gabled roofs and the canals get stone quays. The Royal Palace, Nationaal Monument, Nieuwe Kerk, De Bijenkorf and Oude Kerk are hand-built models at their real locations.
 
 NPCs include the Gemeente Gids (tutorial and starter kit), Haring Henk, Kaas Kees, Stroopwafel Sanne, Wapensmid Willem at De Waag, Bloemen Bep at the Bloemenmarkt, bankers at Centraal and Dam, a Fietsendief, Rembrandt and some ducks.
 
@@ -24,6 +25,7 @@ NPCs include the Gemeente Gids (tutorial and starter kit), Haring Henk, Kaas Kee
 npm install
 npm start            # http://localhost:3000, real OpenStreetMap data via Overpass
 npm run dev          # offline test map (FAKE_MAP=1), no internet needed
+npm run bake-map     # pre-download the whole canal belt (about 360 chunks) so nobody waits on Overpass
 ```
 
 Environment variables:

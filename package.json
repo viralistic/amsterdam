@@ -7,7 +7,8 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
-    "dev": "FAKE_MAP=1 node server/index.js"
+    "dev": "FAKE_MAP=1 node server/index.js",
+    "bake-map": "node scripts/bake-map.js"
   },
   "engines": { "node": ">=20" },
   "dependencies": {

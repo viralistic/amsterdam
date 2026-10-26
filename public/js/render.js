@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { World } from './world.js';
 import { buildModel, disposeModel, animate } from './model.js';
 import { iconCanvas } from './icons.js';
+import { buildLandmarks } from './landmarks.js';
 
 const TICK = 600;
 
@@ -23,6 +24,8 @@ export class Renderer {
     sun.position.set(-40, 80, 30);
     this.scene.add(sun);
     this.world = new World(this.scene);
+    this.scenery = buildLandmarks(this.scene);
+    this.lookAt = null; // optional {x, z} to aim the camera somewhere other than the player
     this.yaw = 0; this.pitch = 0.9; this.dist = 19;
     this.focus = new THREE.Vector3();
     this.ents = new Map(); // "p12" -> entity
@@ -152,13 +155,15 @@ export class Renderer {
     const objs = [];
     for (const e of this.ents.values()) if (e.model) objs.push(e.model.hit);
     for (const s of this.items.values()) objs.push(s);
+    objs.push(...this.scenery);
     const hits = [];
     const seen = new Set();
     for (const h of this.raycaster.intersectObjects(objs, false)) {
       const p = h.object.userData.pick;
-      const id = p.key || 'g' + p.id;
+      const id = p.key || (p.kind === 'scenery' ? 's' + p.name : 'g' + p.id);
       if (seen.has(id)) continue;
       seen.add(id);
+      if (p.kind === 'scenery') { hits.push({ kind: 'scenery', name: p.name, ex: p.ex }); continue; }
       if (p.kind === 'ground') hits.push({ kind: 'ground', item: h.object.userData.data });
       else hits.push({ kind: p.kind, ent: this.ents.get(p.key).data });
     }
@@ -195,8 +200,8 @@ export class Renderer {
       animate(ent.model, ent.walk, ent.amt, now);
       if (ent.data.g) g.position.y = 0.15 + Math.sin(now / 400 + ent.data.id) * 0.08;
     }
-    if (me) {
-      const g = me.model.group.position;
+    if (me || this.lookAt) {
+      const g = this.lookAt || me.model.group.position;
       this.focus.lerp(new THREE.Vector3(g.x, 1, g.z), 0.35);
       this.world.update(g.x, g.z);
     }

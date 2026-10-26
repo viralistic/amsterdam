@@ -251,6 +251,8 @@ function optionsAt(sx, sy) {
       if (e.shop) pre.push({ label: 'Trade', target: t, fn: (x, y) => act('npc', e, 'trade', 1, x, y) });
       if (e.bank) pre.push({ label: 'Bank', target: t, fn: (x, y) => act('npc', e, 'bank', 1, x, y) });
       ex.push({ label: 'Examine', target: t, fn: () => chat(NPC_EXAMINE[e.n] || 'A local.') });
+    } else if (h.kind === 'scenery') {
+      ex.push({ label: 'Examine', target: `<span class="c-npc" style="color:#00ffff">${esc(h.name)}</span>`, fn: () => chat(h.ex) });
     } else if (h.kind === 'ground') {
       const it = h.item, def = ITEMS[it.i];
       const t = `<span class="c-item">${esc(def.name)}${it.q > 1 ? ` (${it.q})` : ''}</span>`;
