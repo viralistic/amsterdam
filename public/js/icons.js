@@ -1,4 +1,7 @@
 // Original pixel-art icons in the old-school inventory style: drawn at 36x32, hard alpha, 1px black outline and a drop shadow.
+import { registry } from './registry.js';
+import { ITEMS } from '/shared/items.js';
+
 const W = 36, H = 32;
 const cache = new Map();
 
@@ -245,6 +248,25 @@ const ICONS = {
   mind_rune: g => rune(g, '#f08a2a', 'mind'),
   chaos_rune: g => rune(g, '#f2d040', 'chaos'),
 
+  // ---- skill icons
+  sk_prayer: g => { poly(g, [[18, 2], [21, 12], [32, 12], [23, 19], [26, 30], [18, 23], [10, 30], [13, 19], [4, 12], [15, 12]], '#f2f2f2'); poly(g, [[18, 8], [20, 14], [26, 14], [21, 18], [23, 24], [18, 20], [13, 24], [15, 18], [10, 14], [16, 14]], '#d8d8d8'); },
+  sk_mining: g => { line(g, [[8, 28], [24, 8]], 3, '#8a5a2c'); g.strokeStyle = '#8a8a92'; g.lineWidth = 3.5; g.lineCap = 'round'; g.beginPath(); g.moveTo(12, 4); g.quadraticCurveTo(26, 4, 32, 14); g.stroke(); },
+  sk_agility: g => { ell(g, 22, 6, 3.5, 3.5, '#d9a066'); line(g, [[20, 10], [16, 19]], 3, '#3a6ad8'); line(g, [[16, 19], [24, 23], [22, 30]], 3, '#2a2a6a'); line(g, [[16, 19], [9, 24], [5, 22]], 3, '#2a2a6a'); line(g, [[19, 12], [27, 14]], 2.5, '#d9a066'); line(g, [[18, 13], [10, 11]], 2.5, '#d9a066'); },
+  sk_smithing: g => { poly(g, [[4, 14], [30, 14], [26, 19], [23, 19], [23, 26], [28, 29], [8, 29], [13, 26], [13, 19], [8, 19]], '#5a5a62'); poly(g, [[4, 14], [30, 14], [28, 16], [6, 16]], '#8a8a92'); line(g, [[20, 3], [28, 10]], 3, '#8a5a2c'); rect(g, 15, 2, 8, 4, '#6a6a72'); },
+  sk_herblore: g => { poly(g, [[14, 4], [22, 4], [22, 11], [29, 22], [26, 30], [10, 30], [7, 22], [14, 11]], '#cfe8e0'); poly(g, [[9, 21], [27, 21], [29, 23], [26, 30], [10, 30], [7, 23]], '#3aa84a'); rect(g, 13, 2, 10, 3, '#8a5a2c'); },
+  sk_fishing: g => { poly(g, [[8, 16], [2, 9], [4, 16], [2, 23]], '#4a7aa8'); ell(g, 19, 16, 13, 6, '#6a9ac8'); ell(g, 20, 18, 9, 2, '#cfe0f0'); rect(g, 26, 14, 2, 2, '#111'); },
+  sk_thieving: g => { ell(g, 18, 16, 14, 9, '#2a2a2a'); ell(g, 11, 15, 4, 3, '#e8e8e8'); ell(g, 25, 15, 4, 3, '#e8e8e8'); ell(g, 11, 15, 1.8, 1.8, '#111'); ell(g, 25, 15, 1.8, 1.8, '#111'); },
+  sk_cooking: g => { ell(g, 18, 22, 13, 6, '#3a3a3a'); poly(g, [[5, 14], [31, 14], [29, 24], [7, 24]], '#5a5a5a'); ell(g, 18, 14, 13, 4, '#8a5a2c'); line(g, [[31, 15], [35, 12]], 2, '#3a3a3a'); },
+  sk_crafting: g => { poly(g, [[4, 26], [26, 4], [32, 10], [10, 32]], '#c9a227'); poly(g, [[8, 26], [26, 8], [28, 10], [10, 28]], '#8a6a10'); ell(g, 11, 23, 3, 3, '#e04040'); },
+  sk_firemaking: g => { poly(g, [[18, 2], [26, 14], [28, 22], [22, 30], [14, 30], [8, 22], [10, 14]], '#f08a1a'); poly(g, [[18, 12], [22, 20], [20, 28], [16, 28], [14, 20]], '#ffe060'); rect(g, 6, 28, 24, 3, '#6a4a2a'); },
+  sk_fletching: g => { line(g, [[6, 30], [28, 6]], 2, '#8a5a2c'); poly(g, [[28, 6], [32, 2], [30, 9]], '#9a9aa2'); poly(g, [[6, 30], [3, 25], [9, 27]], '#e8e8e8'); poly(g, [[8, 28], [6, 23], [11, 25]], '#e8e8e8'); },
+  sk_woodcutting: g => { ell(g, 18, 12, 12, 10, '#3f7a25'); ell(g, 13, 9, 5, 4, '#5a9a35'); rect(g, 15, 18, 6, 12, '#6a4a2a'); },
+  sk_farming: g => { poly(g, [[4, 30], [10, 18], [26, 18], [32, 30]], '#6a4a2a'); line(g, [[18, 22], [18, 8]], 2, '#3a8a2a'); ell(g, 13, 10, 5, 3, '#4aa83a'); ell(g, 23, 12, 5, 3, '#4aa83a'); },
+  sk_hunter: g => { poly(g, [[6, 26], [30, 26], [26, 18], [10, 18]], '#8a6a3a'); for (const x of [10, 15, 20, 25]) line(g, [[x, 26], [x + 1, 12]], 1.5, '#5a3a1a'); ell(g, 18, 8, 6, 5, '#a8784a'); poly(g, [[14, 5], [12, 0], [16, 3]], '#a8784a'); poly(g, [[22, 5], [24, 0], [20, 3]], '#a8784a'); },
+  skull: g => { ell(g, 18, 13, 11, 10, '#f2f2f2'); rect(g, 12, 20, 12, 8, '#f2f2f2'); ell(g, 13, 13, 3, 3.5, '#111'); ell(g, 23, 13, 3, 3.5, '#111'); for (const x of [14, 17, 20]) rect(g, x, 23, 1, 5, '#111'); },
+  quest_icon: g => { poly(g, [[8, 4], [28, 4], [28, 26], [22, 30], [8, 30]], '#d8c8a0'); for (const y of [10, 15, 20]) line(g, [[12, y], [24, y]], 1.2, '#6a5a3a'); poly(g, [[22, 30], [28, 26], [22, 26]], '#b8a880'); },
+  combat_icon: g => { line(g, [[6, 28], [28, 6]], 3, '#c8c8d0'); line(g, [[6, 6], [28, 28]], 3, '#c8c8d0'); rect(g, 8, 22, 6, 2, '#8a5a2c'); rect(g, 22, 22, 6, 2, '#8a5a2c'); },
+
   // ---- interface icons
   heart: g => { ell(g, 12, 12, 7, 7, '#d4141c'); ell(g, 24, 12, 7, 7, '#d4141c'); poly(g, [[5.5, 14], [30.5, 14], [18, 29]], '#d4141c'); ell(g, 11, 10, 2.5, 2, '#ff8a80'); },
   boot: g => { poly(g, [[10, 4], [21, 4], [21, 19], [32, 22], [32, 28], [8, 28], [9, 18]], '#7a4e26'); rect(g, 8, 25, 24, 3, '#3a2410'); rect(g, 10, 4, 11, 3, '#a87440'); },
@@ -267,7 +289,8 @@ export function iconCanvas(id) {
   const c = document.createElement('canvas');
   c.width = W; c.height = H;
   const g = c.getContext('2d', { willReadFrequently: true });
-  (ICONS[id] || ICONS.coins)(g);
+  const draw = ITEMS[id]?.icon || id;
+  (registry.iconDrawers[draw] || ICONS[draw] || ICONS.coins)(g);
   const img = g.getImageData(0, 0, W, H), d = img.data;
   const solid = new Uint8Array(W * H);
   for (let i = 0; i < W * H; i++) {

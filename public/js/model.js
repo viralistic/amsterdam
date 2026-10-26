@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { SKIN, HAIR, CLOTH } from '/shared/look.js';
 import { ITEMS } from '/shared/items.js';
+import { registry } from './registry.js';
 
 function mat(color, mats) {
   const m = new THREE.MeshLambertMaterial({ color, flatShading: true });
@@ -32,6 +33,11 @@ export function buildModel(ent) {
   const group = new THREE.Group();
   const mats = [];
   const parts = {};
+  if (ent.m && registry.npcModels[ent.m]) {
+    const h = registry.npcModels[ent.m](group, mats, parts, THREE, HELPERS);
+    if (ent.sc) group.scale.setScalar(ent.sc);
+    return finish(group, mats, parts, h * (ent.sc || 1), ent);
+  }
   if (ent.m && ANIMALS[ent.m]) {
     const h = ANIMALS[ent.m](group, mats, parts);
     return finish(group, mats, parts, h, ent);
@@ -220,6 +226,8 @@ export function buildModel(ent) {
   return finish(group, mats, parts, 2.05, ent);
 }
 
+export const HELPERS = { mat, seg, blob, pivot, quad, neckHead };
+
 // ---- zoo animals. Each builder adds meshes facing +z and returns the model height.
 
 function quad(group, mats, parts, o) {
@@ -373,8 +381,10 @@ function finish(group, mats, parts, height, ent) {
 }
 
 // Walk cycle: legs swing from the hip, knees bend on the back swing, arms counter-swing.
-export function animate(model, phase, amount, now) {
+// anim is the action the entity is doing (chop, mine, fish, attack, cook, craft, smith, pray, ...).
+export function animate(model, phase, amount, now, anim) {
   const p = model.parts;
+  if (p.custom) { p.custom(phase, amount, now, anim); return; }
   if (p.legs) { p.legs.forEach((l, i) => { l.rotation.x = (l.userData.rx ??= l.rotation.x) + Math.sin(phase + (i === 0 || i === 3 ? 0 : Math.PI)) * 0.45 * amount; }); return; }
   if (p.waddle) { model.group.children.forEach(c => { c.rotation.z = (c.userData.rz ??= c.rotation.z) + Math.sin(phase) * 0.15 * amount; }); return; }
   if (p.bob) { p.bob.position.y = 1.3 + Math.sin(now / 300) * 0.02; return; }
@@ -386,6 +396,15 @@ export function animate(model, phase, amount, now) {
   p.elbowL.rotation.x = -0.25 - Math.max(0, -s) * 0.5; p.elbowR.rotation.x = -0.25 - Math.max(0, s) * 0.5;
   const breathe = Math.sin(now / 700) * 0.015 * (1 - amount);
   p.head.rotation.x = breathe;
+  if (anim && amount < 0.5) {
+    const t = now / 1000;
+    if (anim === 'chop' || anim === 'mine' || anim === 'smith') { const sw = Math.sin(t * 7); p.armR.rotation.x = -1.6 - sw * 0.9; p.elbowR.rotation.x = -0.5; p.armL.rotation.x = -1.2 - sw * 0.6; }
+    else if (anim === 'attack') { const sw = Math.max(0, Math.sin(t * 9)); p.armR.rotation.x = -0.3 - sw * 1.6; }
+    else if (anim === 'fish') { p.armR.rotation.x = -0.9 + Math.sin(t * 2) * 0.1; p.armL.rotation.x = -0.9; p.elbowR.rotation.x = -0.4; }
+    else if (anim === 'pray') { p.armR.rotation.x = -2.8; p.armL.rotation.x = -2.8; }
+    else if (anim === 'pick' || anim === 'farm') { p.armR.rotation.x = -0.8 + Math.sin(t * 5) * 0.4; p.head.rotation.x = 0.4; }
+    else { p.armR.rotation.x = -0.9 + Math.sin(t * 6) * 0.25; p.armL.rotation.x = -0.9 - Math.sin(t * 6) * 0.25; p.elbowR.rotation.x = p.elbowL.rotation.x = -0.6; }
+  }
   if (p.cape) p.cape.rotation.x = -0.12 - amount * 0.25 - Math.abs(Math.sin(phase)) * 0.06 * amount;
 }
 

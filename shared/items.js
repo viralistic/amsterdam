@@ -1,4 +1,17 @@
 // Item definitions shared by client and server. Inventory icons are drawn in public/js/icons.js.
+// Content packs in shared/content/*.js add their own items; they are merged in at the bottom of this file.
+import * as gathering from './content/gathering.js';
+import * as production from './content/production.js';
+import * as combat from './content/combat.js';
+import * as quests from './content/quests.js';
+import * as economy from './content/economy.js';
+import * as atmosphere from './content/atmosphere.js';
+
+export const CONTENT_PACKS = { gathering, production, combat, quests, economy, atmosphere };
+
+// Item fields: name, value, ex (examine), stack, heal, slot (equipment slot), att/str/def/rng/rstr/mag/pray bonuses,
+// req + skill (wield requirement), ops (extra inventory options such as 'Bury'), tradeable (default true),
+// noted icon helpers: color/metal/wood/orb/rune for drawing. icon: id of another item or icon to reuse its picture.
 export const ITEMS = {
   coins: { name: 'Coins', stack: true, value: 1, ex: 'Lovely money!' },
   herring: { name: 'Herring', value: 12, heal: 6, ex: 'Hollandse Nieuwe. Hold it by the tail.' },
@@ -86,8 +99,15 @@ export const SPELLS = [
 ];
 
 export const EQUIP_SLOTS = ['head', 'cape', 'ammo', 'weapon', 'body', 'shield', 'legs', 'feet'];
-export const SKILLS = ['attack', 'strength', 'defence', 'hitpoints', 'ranged', 'magic', 'exploring'];
-export const SKILL_ICON = { attack: 'iron_sword', strength: 'fist', defence: 'kite', hitpoints: 'heart', ranged: 'bow_icon', magic: 'wizard_hat', exploring: 'compass' };
+// Laid out in the skills tab in this order, three per row like the old interface.
+export const SKILLS = ['attack', 'hitpoints', 'mining', 'strength', 'agility', 'smithing', 'defence', 'herblore', 'fishing', 'ranged', 'thieving', 'cooking', 'prayer', 'crafting', 'firemaking', 'magic', 'fletching', 'woodcutting', 'farming', 'hunter', 'exploring'];
+export const SKILL_ICON = {
+  attack: 'iron_sword', strength: 'fist', defence: 'kite', hitpoints: 'heart', ranged: 'bow_icon', magic: 'wizard_hat', exploring: 'compass',
+  prayer: 'sk_prayer', mining: 'sk_mining', agility: 'sk_agility', smithing: 'sk_smithing', herblore: 'sk_herblore', fishing: 'sk_fishing',
+  thieving: 'sk_thieving', cooking: 'sk_cooking', crafting: 'sk_crafting', firemaking: 'sk_firemaking', fletching: 'sk_fletching',
+  woodcutting: 'sk_woodcutting', farming: 'sk_farming', hunter: 'sk_hunter',
+};
+export const COMBAT_SKILLS = ['attack', 'strength', 'defence', 'hitpoints', 'ranged', 'prayer', 'magic'];
 
 export function levelForXp(xp) {
   let pts = 0;
@@ -108,7 +128,7 @@ export function combatLevel(lv) {
   const melee = 0.325 * (lv.attack + lv.strength);
   const range = 0.325 * Math.floor(1.5 * (lv.ranged || 1));
   const mage = 0.325 * Math.floor(1.5 * (lv.magic || 1));
-  return Math.floor(0.25 * (lv.defence + lv.hitpoints) + Math.max(melee, range, mage));
+  return Math.floor(0.25 * (lv.defence + lv.hitpoints + Math.floor((lv.prayer || 1) / 2)) + Math.max(melee, range, mage));
 }
 
 export function fmtQty(q) {
@@ -116,3 +136,6 @@ export function fmtQty(q) {
   if (q >= 100_000) return { text: Math.floor(q / 1000) + 'K', color: '#ffffff' };
   return { text: String(q), color: '#ffff00' };
 }
+
+export const BASE_ITEM_IDS = Object.keys(ITEMS);
+for (const pack of Object.values(CONTENT_PACKS)) Object.assign(ITEMS, pack.ITEMS || {});

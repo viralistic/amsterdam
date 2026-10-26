@@ -1,0 +1,2 @@
+// Client-side models, icons and UI for the "gathering" content pack. See docs/ENGINE.md.
+import { registry } from '../registry.js';

@@ -4,6 +4,8 @@ import { World } from './world.js';
 import { buildModel, disposeModel, animate } from './model.js';
 import { iconCanvas } from './icons.js';
 import { buildLandmarks, buildZoo } from './landmarks.js';
+import { registry } from './registry.js';
+import { OBJECT_TYPES } from '/shared/objects.js';
 
 const TICK = 600;
 
@@ -27,6 +29,7 @@ export class Renderer {
     this.scenery = buildLandmarks(this.scene);
     buildZoo(this.scene);
     this.projectiles = [];
+    this.objs = new Map();
     this.lookAt = null; // optional {x, z} to aim the camera somewhere other than the player
     this.yaw = 0; this.pitch = 0.9; this.dist = 19;
     this.focus = new THREE.Vector3();
@@ -57,7 +60,7 @@ export class Renderer {
       const key = e.k + e.id;
       seen.add(key);
       let ent = this.ents.get(key);
-      const sig = JSON.stringify([e.l, e.eq, e.g, e.m]);
+      const sig = JSON.stringify([e.l, e.eq, e.g, e.m, e.sc]);
       if (!ent) {
         ent = { key, data: e, from: { x: e.x, z: e.z }, to: { x: e.x, z: e.z }, rot: 0, walk: 0, dom: null, splats: [], hpUntil: 0 };
         this.ents.set(key, ent);
@@ -65,7 +68,7 @@ export class Renderer {
         const cur = this.entPos(ent, 1);
         ent.from = cur;
         ent.to = { x: e.x, z: e.z };
-        if (Math.abs(cur.x - e.x) > 30 || Math.abs(cur.z - e.z) > 30) ent.from = { x: e.x, z: e.z };
+        if (e.tp || Math.abs(cur.x - e.x) > 30 || Math.abs(cur.z - e.z) > 30) ent.from = { x: e.x, z: e.z };
       }
       if (ent.sig !== sig) {
         if (ent.model) { this.scene.remove(ent.model.group); disposeModel(ent.model); }
@@ -96,6 +99,44 @@ export class Renderer {
     for (const [id, s] of this.items) if (!seenI.has(id)) { this.scene.remove(s); s.material.dispose(); this.items.delete(id); }
   }
 
+  // ---- world objects (trees, rocks, ladders...): [id, type, x, z, rot, depleted]
+  applyObjects(list) {
+    const seen = new Set();
+    for (const [id, type, x, z, rot, dep] of list) {
+      seen.add(id);
+      const cur = this.objs.get(id);
+      if (cur && cur.dep === dep) continue;
+      if (cur) this.removeObj(id);
+      const def = OBJECT_TYPES[type] || { name: type, model: 'box' };
+      const look = dep && def.depleted ? def.depleted : def;
+      const build = registry.objectModels[look.model] || registry.objectModels.box;
+      const mesh = build({ ...(look.params || {}), size: def.size }, THREE);
+      mesh.position.set(x + 0.5, 0, z + 0.5);
+      mesh.rotation.y = rot || 0;
+      mesh.traverse(m => { m.userData.pick = { kind: 'obj', id }; });
+      // picking uses one invisible box so thin models are easy to click
+      const [w, d] = def.size || [1, 1];
+      const hitbox = new THREE.Mesh(new THREE.BoxGeometry(w, def.pickHeight || 1.6, d), new THREE.MeshBasicMaterial({ visible: false }));
+      hitbox.position.y = (def.pickHeight || 1.6) / 2;
+      hitbox.userData.pick = { kind: 'obj', id };
+      mesh.add(hitbox);
+      this.scene.add(mesh);
+      this.objs.set(id, { mesh: hitbox, root: mesh, dep, data: { id, type, x, z, dep, def } });
+    }
+    for (const id of [...this.objs.keys()]) if (!seen.has(id)) this.removeObj(id);
+    const blocked = new Set();
+    for (const { data } of this.objs.values()) if (data.def.blocks) { const [w, d] = data.def.size || [1, 1]; for (let i = 0; i < w; i++) for (let j = 0; j < d; j++) blocked.add((data.x + i - Math.floor((w - 1) / 2)) + ',' + (data.z + j - Math.floor((d - 1) / 2))); }
+    this.world.dynBlocked = blocked;
+  }
+
+  removeObj(id) {
+    const o = this.objs.get(id);
+    if (!o) return;
+    this.scene.remove(o.root);
+    o.root.traverse(m => { m.geometry?.dispose(); if (m.material) (Array.isArray(m.material) ? m.material : [m.material]).forEach(x => x.dispose()); });
+    this.objs.delete(id);
+  }
+
   removeEnt(key, ent) {
     if (ent.model) { this.scene.remove(ent.model.group); disposeModel(ent.model); }
     ent.dom?.remove();
@@ -107,6 +148,7 @@ export class Renderer {
     for (const [key, ent] of this.ents) this.removeEnt(key, ent);
     for (const [, s] of this.items) this.scene.remove(s);
     this.items.clear();
+    for (const id of [...this.objs.keys()]) this.removeObj(id);
   }
 
   iconTexture(id) {
@@ -129,17 +171,17 @@ export class Renderer {
     ent.say = text; ent.sayUntil = performance.now() + 4000;
   }
 
-  hit(id, dmg, hp, mhp, from, proj) {
-    const ent = this.ents.get('p' + id);
+  hit(id, dmg, hp, mhp, from, proj, k = 'p', fk = 'p') {
+    const ent = this.ents.get(k + id);
     if (!ent) return;
-    const src = from && this.ents.get('p' + from);
+    const src = from && this.ents.get(fk + from);
     if (proj && src) {
       // arrows and spells fly to the target; the splat shows when they land
       const mesh = proj.kind === 'arrow'
         ? new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.7), new THREE.MeshBasicMaterial({ color: '#7a5030' }))
         : new THREE.Mesh(new THREE.IcosahedronGeometry(0.22, 0), new THREE.MeshBasicMaterial({ color: proj.color, transparent: true, opacity: 0.9 }));
       this.scene.add(mesh);
-      this.projectiles.push({ mesh, src, dst: ent, t0: performance.now(), dur: 500, done: () => this.hit(id, dmg, hp, mhp) });
+      this.projectiles.push({ mesh, src, dst: ent, t0: performance.now(), dur: 500, done: () => this.hit(id, dmg, hp, mhp, null, null, k) });
       return;
     }
     const el = document.createElement('div');
@@ -168,14 +210,16 @@ export class Renderer {
     for (const e of this.ents.values()) if (e.model) objs.push(e.model.hit);
     for (const s of this.items.values()) objs.push(s);
     objs.push(...this.scenery);
+    for (const o of this.objs.values()) objs.push(o.mesh);
     const hits = [];
     const seen = new Set();
     for (const h of this.raycaster.intersectObjects(objs, false)) {
       const p = h.object.userData.pick;
-      const id = p.key || (p.kind === 'scenery' ? 's' + p.name : 'g' + p.id);
+      const id = p.key || (p.kind === 'scenery' ? 's' + p.name : p.kind === 'obj' ? 'o' + p.id : 'g' + p.id);
       if (seen.has(id)) continue;
       seen.add(id);
       if (p.kind === 'scenery') { hits.push({ kind: 'scenery', name: p.name, ex: p.ex }); continue; }
+      if (p.kind === 'obj') { const o = this.objs.get(p.id); if (o) hits.push({ kind: 'obj', obj: o.data }); continue; }
       if (p.kind === 'ground') hits.push({ kind: 'ground', item: h.object.userData.data });
       else hits.push({ kind: p.kind, ent: this.ents.get(p.key).data });
     }
@@ -209,7 +253,7 @@ export class Renderer {
       g.rotation.y += dr * 0.25;
       if (moving) ent.walk += 0.22 * Math.max(1, Math.hypot(dx, dz));
       ent.amt = (ent.amt || 0) + ((moving ? 1 : 0) - (ent.amt || 0)) * 0.2;
-      animate(ent.model, ent.walk, ent.amt, now);
+      animate(ent.model, ent.walk, ent.amt, now, ent.data.a);
       if (ent.data.g) g.position.y = 0.15 + Math.sin(now / 400 + ent.data.id) * 0.08;
     }
     if (me || this.lookAt) {
@@ -231,6 +275,7 @@ export class Renderer {
     const cp = Math.cos(this.pitch);
     this.camera.position.set(this.focus.x + Math.sin(this.yaw) * cp * this.dist, this.focus.y + Math.sin(this.pitch) * this.dist, this.focus.z + Math.cos(this.yaw) * cp * this.dist);
     this.camera.lookAt(this.focus);
+    for (const f of registry.frameHooks) { try { f(now, registry.ctx); } catch (e) { console.error('frame hook', e); } }
     this.gl.render(this.scene, this.camera);
     this.drawOverlays(now);
   }
@@ -247,16 +292,21 @@ export class Renderer {
       const top = this.project(g.x, ent.model.height + 0.35, g.z);
       const talking = ent.say && ent.sayUntil > now;
       const showHp = ent.hpUntil > now;
-      if (!top || (!talking && !showHp && !ent.splats.length)) { if (ent.dom) ent.dom.style.display = 'none'; continue; }
+      const icons = (ent.data.sk ? 'skull,' : '') + (ent.data.ov ? ent.data.ov : '');
+      if (!top || (!talking && !showHp && !ent.splats.length && !icons)) { if (ent.dom) ent.dom.style.display = 'none'; continue; }
       if (!ent.dom) {
         ent.dom = document.createElement('div');
         ent.dom.className = 'overhead';
-        ent.dom.innerHTML = '<div class="say"></div><div class="hpbar"><div></div></div>';
+        ent.dom.innerHTML = '<div class="ovicons"></div><div class="say"></div><div class="hpbar"><div></div></div>';
         this.overlay.appendChild(ent.dom);
+      }
+      if (ent.icons !== icons) {
+        ent.icons = icons;
+        ent.dom.firstChild.innerHTML = icons.split(',').filter(Boolean).map(id => `<img src="${iconCanvas(id).url}" style="width:24px;height:21px;image-rendering:pixelated">`).join('');
       }
       ent.dom.style.display = '';
       ent.dom.style.transform = `translate(${top.x}px, ${top.y}px)`;
-      const sayEl = ent.dom.firstChild;
+      const sayEl = ent.dom.children[1];
       sayEl.textContent = talking ? ent.say : '';
       const bar = ent.dom.lastChild;
       bar.style.display = showHp ? '' : 'none';

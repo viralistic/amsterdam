@@ -5,6 +5,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { CHUNK } from '/shared/geo.js';
 import { LANDMARK_MODELS, insideLandmark } from '/shared/landmarks.js';
 import { ENCLOSURES, PATHS_WORLD, ZOO_BOUNDS_WORLD, GROUND, insideZoo } from '/shared/zoo.js';
+import { registry } from './registry.js';
 
 const PX = 2; // ground texture pixels per metre
 const COLORS = {
@@ -89,7 +90,8 @@ export class World {
     cv.width = cv.height = CHUNK * PX;
     const g = cv.getContext('2d');
     g.scale(PX, PX);
-    g.fillStyle = COLORS.base; g.fillRect(0, 0, CHUNK, CHUNK);
+    g.fillStyle = d.base || COLORS.base; g.fillRect(0, 0, CHUNK, CHUNK);
+    for (const [color, ring] of d.fl || []) { g.fillStyle = color; g.beginPath(); ringPath(g, ring); g.fill(); }
     const polys = (list, color) => { g.fillStyle = color; for (const rings of list) { g.beginPath(); for (const r of rings) ringPath(g, r); g.fill('evenodd'); } };
     polys(d.p, COLORS.paved);
     polys(d.g, COLORS.green);
@@ -199,30 +201,36 @@ export class World {
         c.group.add(tufts);
       }
     }
+    for (const f of registry.chunkDecorators) { try { f(c, d, c.group, THREE, registry.ctx); } catch (e) { console.error('chunk decorator', e); } }
   }
 
   buildingGeometry(list, x0, z0) {
     const pos = [], col = [], uv = [];
     const c = new THREE.Color();
     const push = (x, y, z, color, u = 0.01, v = 0.01) => { pos.push(x, y, z); col.push(color.r, color.g, color.b); uv.push(u, v); };
-    for (const [h, seed, r] of list) {
+    for (const [h, seed, r, color] of list) {
       let pts = [];
       for (let i = 0; i < r.length - 2; i += 2) pts.push(new THREE.Vector2(r[i] + x0, r[i + 1] + z0));
       if (pts.length < 3) continue;
       // make winding counter-clockwise when seen from above (x right, z down)
       if (THREE.ShapeUtils.area(pts) < 0) pts.reverse();
-      const wall = c.set(WALLS[seed % WALLS.length]).clone();
-      const roof = c.set(ROOFS[seed % ROOFS.length]).clone();
+      const wall = c.set(color || WALLS[seed % WALLS.length]).clone();
+      const roof = color ? wall.clone().multiplyScalar(0.7) : c.set(ROOFS[seed % ROOFS.length]).clone();
       let run = 0;
       for (let i = 0; i < pts.length; i++) {
         const a = pts[i], b = pts[(i + 1) % pts.length];
         const shade = wall.clone().multiplyScalar(0.92 + 0.08 * hash(i, seed));
         // facade texture repeats every 4 m along the wall and every 3.2 m (one storey) upwards
         const u0 = run / 4, u1 = (run += a.distanceTo(b)) / 4, vt = h / 3.2;
+        if (color) { // plain interior and dungeon walls: no windows
+          push(a.x, 0, a.y, shade); push(b.x, 0, b.y, shade); push(b.x, h, b.y, shade);
+          push(a.x, 0, a.y, shade); push(b.x, h, b.y, shade); push(a.x, h, a.y, shade);
+          continue;
+        }
         push(a.x, 0, a.y, shade, u0, 0); push(b.x, 0, b.y, shade, u1, 0); push(b.x, h, b.y, shade, u1, vt);
         push(a.x, 0, a.y, shade, u0, 0); push(b.x, h, b.y, shade, u1, vt); push(a.x, h, a.y, shade, u0, vt);
       }
-      const box = gableBox(pts);
+      const box = color ? null : gableBox(pts);
       if (box) {
         // canal-house roof: ridge along the long side, so the gable faces the street
         const { corner, along, short } = box;
@@ -253,6 +261,7 @@ export class World {
   }
 
   blocked(x, z) {
+    if (this.dynBlocked?.has(x + ',' + z)) return true;
     const c = this.chunks.get(this.key(Math.floor(x / CHUNK), Math.floor(z / CHUNK)));
     if (!c?.coll) return false;
     const lx = x - c.cx * CHUNK, lz = z - c.cz * CHUNK;

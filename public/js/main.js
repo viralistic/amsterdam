@@ -6,14 +6,19 @@ import { SKIN, HAIR, CLOTH, DEFAULT_LOOK } from '/shared/look.js';
 import { toLatLon, CHUNK } from '/shared/geo.js';
 import { ENCLOSURES } from '/shared/zoo.js';
 import { LANDMARK_MODELS } from '/shared/landmarks.js';
+import { OBJECT_TYPES } from '/shared/objects.js';
+import { registry } from './registry.js';
+import './objects-core.js';
+import './content/index.js';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
 
-const S = { id: 0, name: '', x: 0, z: 0, inv: [], equip: {}, xp: {}, hp: 10, mhp: 10, en: 100, run: false, real: false, ents: [], items: [], iface: null, trade: null, filter: 'all', chat: [] };
+const S = { id: 0, name: '', x: 0, z: 0, inv: [], equip: {}, xp: {}, hp: 10, mhp: 10, pr: 1, en: 100, run: false, real: false, inside: false, wild: 0, ents: [], items: [], iface: null, trade: null, filter: 'all', chat: [], use: null, style: 'controlled', retaliate: true, quests: [], qp: 0, region: null };
 let ws = null, inGame = false, renderer = null;
 const send = m => { if (ws?.readyState === 1) ws.send(JSON.stringify(m)); };
+const using = () => S.use !== null && S.use !== undefined;
 
 // ======================================================================= login
 const look = { ...DEFAULT_LOOK };
@@ -107,13 +112,23 @@ function onMessage(m) {
     case 'shop': return showShop(m);
     case 'bank': return showBank(m);
     case 'trade': return showTrade(m);
-    case 'death': stopGps(false); return;
+    case 'death': stopGps(false); registry.sfx?.('death'); return;
+    case 'objs': return renderer.applyObjects(m.o);
+    case 'xp': return xpDrop(m.skill, m.amount);
+    case 'levelup': registry.sfx?.('levelup'); return levelFireworks(m.skill, m.level);
+    case 'region': return showRegion(m);
+    case 'make': return showMake(m);
+    case 'quests': S.quests = m.list; S.qp = m.qp; return drawQuests();
+    case 'qjournal': return openWindow(m.name, `<div class="journal">${m.lines.map(l => `<p>${esc(l)}</p>`).join('')}</div>`);
+    case 'questdone': registry.sfx?.('quest'); return openWindow('Quest complete!', `<div class="questdone"><p class="qd-title">Congratulations!</p><p>You have completed <b>${esc(m.name)}</b>!</p><p class="qd-sub">You are awarded:</p>${m.rewards.map(r => `<p>${esc(r)}</p>`).join('')}<p class="qd-sub">Quest points: ${m.qp}</p></div>`);
+    case 'style': S.style = m.style; S.retaliate = m.retaliate; return drawCombat();
+    default: registry.msgHandlers[m.t]?.(m, registry.ctx);
   }
 }
 
 function enterGame(m) {
   inGame = true;
-  Object.assign(S, { id: m.id, name: m.name, x: m.x, z: m.z, inv: m.inv, equip: m.equip, xp: m.xp, hp: m.hp, real: false });
+  Object.assign(S, { id: m.id, name: m.name, x: m.x, z: m.z, inv: m.inv, equip: m.equip, xp: m.xp, hp: m.hp, real: false, style: m.style, retaliate: m.retaliate, dev: m.dev });
   $('#login').hidden = true;
   $('#game').hidden = false;
   $('#chat-name').textContent = m.name;
@@ -124,14 +139,15 @@ function enterGame(m) {
   }
   renderer.focus.set(m.x + 0.5, 1, m.z + 0.5);
   renderer.resize();
-  drawInv(); drawEquip(); drawSkills(); drawOptions(); drawOrbs();
+  drawInv(); drawEquip(); drawSkills(); drawOptions(); drawOrbs(); drawCombat(); drawQuests();
+  for (const t of registry.tabs) { try { t.render($('#tab-' + t.id), registry.ctx); } catch (e) { console.error(e); } }
   if (m.isNew) setTimeout(() => chat('Tip: right-click (or long-press) on people to see all options.', 'level'), 1500);
 }
 
 function onTick(m) {
-  Object.assign(S, { x: m.you.x, z: m.you.z, hp: m.you.hp, mhp: m.you.mhp, en: m.you.en, run: m.you.run, real: m.you.real, ents: m.e, items: m.gi });
+  Object.assign(S, { x: m.you.x, z: m.you.z, hp: m.you.hp, mhp: m.you.mhp, pr: m.you.pr, en: m.you.en, run: m.you.run, real: m.you.real, inside: m.you.inside, wild: m.you.wild, skulled: m.you.sk, target: m.you.tgt, ents: m.e, items: m.gi });
   renderer.applyTick(m.e, m.gi, S.id);
-  for (const h of m.h) renderer.hit(h.id, h.d, h.hp, h.mhp, h.from, h.proj);
+  for (const h of m.h) { renderer.hit(h.id, h.d, h.hp, h.mhp, h.from, h.proj, h.k, h.fk); if (h.k === 'p' && h.id === S.id || h.fk === 'p' && h.from === S.id) registry.sfx?.(h.d ? 'hit' : 'miss'); }
   drawOrbs();
 }
 
@@ -153,7 +169,7 @@ function loop(now) {
 document.addEventListener('keydown', e => {
   if (!inGame) return;
   if (e.key.startsWith('Arrow')) { keys[e.key] = true; e.preventDefault(); return; }
-  if (e.key === 'Escape') { hideMenu(); closeWindow(true); return; }
+  if (e.key === 'Escape') { hideMenu(); closeWindow(true); if (using()) { S.use = null; drawInv(); } return; }
   const dlg = $('#chat-dialog');
   if (!dlg.hidden && document.activeElement !== $('#chat-text')) {
     if (e.key === ' ') { e.preventDefault(); dlg.click(); return; }
@@ -231,6 +247,7 @@ view.addEventListener('pointercancel', e => { pointers.delete(e.pointerId); drag
 
 function updateHover(x, y) {
   const opts = optionsAt(x, y);
+  if (using() && opts[0]?.label === 'Cancel') { $('#hovertext').innerHTML = `Use <span class="c-item">${esc(ITEMS[S.inv[S.use]?.id]?.name || '')}</span> -&gt;`; return; }
   const o = opts[0];
   const more = opts.length - 2;
   $('#hovertext').innerHTML = o && o.label !== 'Cancel' ? `${o.label} ${o.target}${more > 0 ? ` <span style="color:#fff">/ ${more} more option${more > 1 ? 's' : ''}</span>` : ''}` : '';
@@ -246,10 +263,20 @@ const NPC_EXAMINE = {
 function optionsAt(sx, sy) {
   const { hits, tile } = renderer.pick(sx, sy);
   const pre = [], post = [], ex = [];
+  if (using()) return useOptions(hits);
   for (const h of hits) {
-    if (h.kind === 'npc') {
-      const e = h.ent, t = `<span class="c-npc">${esc(e.n)}</span>`;
+    if (h.kind === 'obj') {
+      const o = h.obj, def = o.def, look = o.dep && def.depleted ? { ...def, ...def.depleted } : def;
+      const t = `<span class="c-npc" style="color:#00ffff">${esc(look.name || def.name)}</span>`;
+      for (const a of look.actions || []) pre.push({ label: a, target: t, fn: (x, y) => act('obj', o, a, 1, x, y) });
+      ex.push({ label: 'Examine', target: t, fn: () => chat(look.ex || def.ex || 'A thing.') });
+    } else if (h.kind === 'npc') {
+      const e = h.ent, myCb = combatLevel(levelsOf(S.xp));
+      const t = `<span class="c-npc">${esc(e.n)}</span>${e.cb ? ` <span class="c-lvl${e.cb > myCb ? ' red' : ''}">(level-${e.cb})</span>` : ''}`;
+      if (e.cb && !e.talk) pre.push({ label: 'Attack', target: t, fn: (x, y) => act('npc', e, 'attack', -1, x, y) });
       if (e.talk) pre.push({ label: 'Talk-to', target: t, fn: (x, y) => act('npc', e, 'talk', 1, x, y) });
+      if (e.cb && e.talk) pre.push({ label: 'Attack', target: t, fn: (x, y) => act('npc', e, 'attack', -1, x, y) });
+      for (const a of e.acts || []) pre.push({ label: a, target: t, fn: (x, y) => act('npc', e, a, 1, x, y) });
       if (e.shop) pre.push({ label: 'Trade', target: t, fn: (x, y) => act('npc', e, 'trade', 1, x, y) });
       if (e.bank) pre.push({ label: 'Bank', target: t, fn: (x, y) => act('npc', e, 'bank', 1, x, y) });
       ex.push({ label: 'Examine', target: t, fn: () => chat(NPC_EXAMINE[e.n] || e.ex || 'A local.') });
@@ -263,6 +290,7 @@ function optionsAt(sx, sy) {
     } else if (h.kind === 'player' && h.ent.id !== S.id) {
       const e = h.ent, myCb = combatLevel(levelsOf(S.xp));
       const t = `<span class="c-player">${esc(e.n)}</span>${e.g ? ' <span style="color:#9fd0ff">(ghost)</span>' : ''} <span class="c-lvl${e.cb > myCb ? ' red' : ''}">(level-${e.cb})</span>`;
+      if (S.wild && (!e.g) === S.real) pre.push({ label: 'Attack', target: t, fn: (x, y) => act('player', e, 'attack', -1, x, y) });
       post.push({ label: 'Challenge', target: t, fn: (x, y) => act('player', e, 'challenge', -1, x, y) });
       post.push({ label: 'Trade with', target: t, fn: (x, y) => act('player', e, 'trade', 1, x, y) });
     }
@@ -271,11 +299,26 @@ function optionsAt(sx, sy) {
   return [...pre, ...walk, ...post, ...ex, { label: 'Cancel', target: '', fn: () => {} }];
 }
 
-function act(kind, ent, action, range, sx, sy) {
+function act(kind, ent, action, range, sx, sy, extra) {
   let path = null;
-  if (!S.real && range >= 0) path = renderer.world.findPath(S.x, S.z, ent.x, ent.z, range);
-  send({ t: 'act', kind, id: ent.id, action, path });
+  if ((!S.real || S.inside) && range >= 0) path = renderer.world.findPath(S.x, S.z, ent.x, ent.z, range);
+  send({ t: 'act', kind, id: ent.id, action, path, ...extra });
   if (sx !== undefined) renderer.showMarker(sx, sy, true);
+}
+
+// "Use X ->" mode: the next thing you click is what the item is used on.
+function useOptions(hits) {
+  const u = S.use, def = ITEMS[S.inv[u]?.id];
+  if (!def) { S.use = null; return [{ label: 'Cancel', target: '', fn: () => {} }]; }
+  const head = `<span class="c-item">${esc(def.name)}</span> -&gt; `;
+  const out = [];
+  for (const h of hits) {
+    if (h.kind === 'obj') out.push({ label: 'Use', target: head + `<span style="color:#00ffff">${esc(h.obj.def.name)}</span>`, fn: (x, y) => { S.use = null; act('obj', h.obj, 'use', 1, x, y, { slot: u }); } });
+    if (h.kind === 'npc') out.push({ label: 'Use', target: head + `<span class="c-npc">${esc(h.ent.n)}</span>`, fn: (x, y) => { S.use = null; act('npc', h.ent, 'use', 1, x, y, { slot: u }); } });
+    if (h.kind === 'player' && h.ent.id !== S.id) out.push({ label: 'Use', target: head + `<span class="c-player">${esc(h.ent.n)}</span>`, fn: (x, y) => { S.use = null; act('player', h.ent, 'use', 1, x, y, { slot: u }); } });
+  }
+  out.push({ label: 'Cancel', target: '', fn: () => { S.use = null; drawInv(); } });
+  return out;
 }
 
 function walkTo(x, z, sx, sy) {
@@ -374,13 +417,23 @@ function showDialog(m) {
     d.innerHTML = '<div class="title">Select an Option</div>' + m.opts.map((o, i) => `<div class="opt" data-i="${i}">${esc(o)}</div>`).join('');
     d.onclick = e => { const o = e.target.closest('.opt'); if (o) { e.stopPropagation(); send({ t: 'dlg', opt: +o.dataset.i }); } };
   } else {
-    d.innerHTML = `<div class="who">${esc(m.who)}</div><div class="text">${esc(m.text)}</div><div class="cont">Click here to continue</div>`;
+    d.innerHTML = m.side === 'item' ? `<div class="item-dlg">${iconImg(m.item)}<div class="text">${esc(m.text)}</div></div><div class="cont">Click here to continue</div>`
+      : `<div class="who">${esc(m.who)}</div><div class="text">${esc(m.text)}</div><div class="cont">Click here to continue</div>`;
     d.onclick = () => send({ t: 'dlg' });
   }
 }
-function hideDialog() { $('#chat-dialog').hidden = true; if (S.iface === 'dlg') S.iface = null; }
+function hideDialog() { $('#chat-dialog').hidden = true; if (S.iface === 'dlg' || S.iface === 'make') S.iface = null; }
 
 // ======================================================================= side panel
+// Combat and Quest tabs, plus any tabs content packs registered, go into the side panel.
+for (const t of [{ id: 'combat', icon: 'combat_icon', title: 'Combat options', before: 'skills' }, { id: 'quests', icon: 'quest_icon', title: 'Quest list', before: 'inv' }, ...registry.tabs.map(t => ({ ...t, before: 'options' }))]) {
+  const b = document.createElement('button');
+  b.dataset.tab = t.id; b.title = t.title || t.id; b.dataset.icon = t.icon;
+  $('#side-tabs').insertBefore(b, document.querySelector(`#side-tabs [data-tab="${t.before}"]`));
+  const div = document.createElement('div');
+  div.className = 'tab'; div.id = 'tab-' + t.id; div.hidden = true;
+  $('#side-panel').appendChild(div);
+}
 document.querySelectorAll('#side-tabs button').forEach(b => b.onclick = () => {
   const panel = $('#side-panel');
   if (b.classList.contains('on') && !panel.classList.contains('collapsed')) { panel.classList.add('collapsed'); b.classList.remove('on'); return; }
@@ -409,10 +462,15 @@ function invOptions(i) {
   }
   if (S.iface === 'bank') return [...[1, 5, 10].map(n => ({ label: 'Deposit-' + n, target: t, fn: () => send({ t: 'bank', op: 'dep', slot: i, qty: n }) })), { label: 'Deposit-All', target: t, fn: () => send({ t: 'bank', op: 'dep', slot: i, qty: 'all' }) }, ex];
   if (S.iface === 'trade' && S.trade?.stage === 1) return [...[1, 5, 10].map(n => ({ label: n === 1 ? 'Offer' : 'Offer-' + n, target: t, fn: () => send({ t: 'trade', op: 'offer', slot: i, qty: n }) })), { label: 'Offer-All', target: t, fn: () => send({ t: 'trade', op: 'offer', slot: i, qty: 1e9 }) }, ex];
+  if (using() && S.inv[S.use]) {
+    const u = S.use, ud = ITEMS[S.inv[u].id];
+    return [{ label: 'Use', target: `<span class="c-item">${esc(ud.name)}</span> -&gt; ${t}`, fn: () => { S.use = null; drawInv(); if (u !== i) send({ t: 'useitem', slot: u, target: i }); } }, { label: 'Cancel', target: '', fn: () => { S.use = null; drawInv(); } }];
+  }
   const o = [];
-  if (def.heal) o.push({ label: 'Eat', target: t, fn: () => send({ t: 'inv', op: 'eat', slot: i }) });
+  if (def.heal) o.push({ label: def.drink ? 'Drink' : 'Eat', target: t, fn: () => send({ t: 'inv', op: 'eat', slot: i }) });
+  for (const op of def.ops || []) o.push({ label: op, target: t, fn: () => send({ t: 'inv', op: 'op', name: op, slot: i }) });
   if (def.slot) o.push({ label: ['weapon', 'shield', 'ammo'].includes(def.slot) ? 'Wield' : 'Wear', target: t, fn: () => send({ t: 'inv', op: 'wield', slot: i }) });
-  o.push({ label: 'Use', target: t, fn: () => chat('Nothing interesting happens.') });
+  o.push({ label: 'Use', target: t, fn: () => { S.use = i; drawInv(); } });
   o.push({ label: 'Drop', target: t, fn: () => send({ t: 'inv', op: 'drop', slot: i }) });
   o.push(ex);
   return o;
@@ -427,7 +485,7 @@ for (let i = 0; i < 28; i++) {
   d.addEventListener('mouseenter', () => { const o = invOptions(i)[0]; $('#hovertext').innerHTML = o ? `${o.label} ${o.target}` : ''; });
   invEl.appendChild(d);
 }
-function drawInv() { S.inv.forEach((s, i) => { invEl.children[i].innerHTML = slotHtml(s); }); }
+function drawInv() { S.inv.forEach((s, i) => { invEl.children[i].innerHTML = slotHtml(s); invEl.children[i].classList.toggle('sel', S.use === i); }); }
 
 const levelsOf = xp => Object.fromEntries(SKILLS.map(s => [s, levelForXp(xp[s] || 0)]));
 
@@ -436,8 +494,9 @@ function drawSkills() {
   const total = SKILLS.reduce((a, s) => a + lv[s], 0);
   $('#tab-skills').innerHTML = '<div class="skills">' + SKILLS.map(s => {
     const xp = Math.floor(S.xp[s] || 0), next = lv[s] < 99 ? xpForLevel(lv[s] + 1) : null;
-    return `<div class="skill" title="${s[0].toUpperCase() + s.slice(1)} XP: ${xp.toLocaleString()}${next ? `\nNext level at: ${next.toLocaleString()}` : ''}">${iconImg(SKILL_ICON[s], 'ico sk')}<span>${lv[s]}/${lv[s]}<span class="xp">${xp.toLocaleString()} xp</span></span></div>`;
-  }).join('') + `</div><div class="total">Total level: ${total}<br>Combat level: ${combatLevel(lv)}</div><p class="note">Exploring xp is earned by walking around Amsterdam in real-life mode and discovering landmarks.</p>`;
+    const cur = s === 'hitpoints' ? S.hp : s === 'prayer' ? S.pr : lv[s];
+    return `<div class="skill" title="${s[0].toUpperCase() + s.slice(1)} XP: ${xp.toLocaleString()}${next ? `\nNext level at: ${next.toLocaleString()}\nRemaining: ${(next - xp).toLocaleString()}` : ''}">${iconImg(SKILL_ICON[s], 'ico sk')}<span>${cur}<br>${lv[s]}</span></div>`;
+  }).join('') + `<div class="skill total-cell">Total<br>${total}</div></div><p class="note">Exploring XP comes from walking Amsterdam in real-life mode.</p>`;
 }
 
 const EQUIP_GRID = [null, 'head', null, 'cape', null, 'ammo', 'weapon', 'body', 'shield', null, 'legs', null, null, 'feet', null];
@@ -481,6 +540,7 @@ function drawOrbs() {
   const hpOrb = $('#orb-hp b');
   hpOrb.textContent = S.hp;
   hpOrb.style.color = S.hp / S.mhp > 0.66 ? '#00ff00' : S.hp / S.mhp > 0.33 ? '#ffff00' : '#ff3030';
+  $('#orb-pray b').textContent = S.pr ?? 1;
   $('#orb-run b').textContent = S.en;
   $('#orb-run').classList.toggle('on', S.run);
   $('#orb-real').classList.toggle('on', S.real);
@@ -488,7 +548,81 @@ function drawOrbs() {
   $('#orb-real b').textContent = S.real ? 'Real' : gpsWatch !== null ? '...' : 'Ghost';
 }
 $('#orb-run').onclick = () => send({ t: 'run', on: !S.run });
+
+// ---------------- combat tab
+const STYLES = [['accurate', 'Accurate', 'Attack XP'], ['aggressive', 'Aggressive', 'Strength XP'], ['defensive', 'Defensive', 'Defence XP'], ['controlled', 'Controlled', 'Shared XP']];
+function drawCombat() {
+  const el = $('#tab-combat');
+  if (!el) return;
+  const w = S.equip?.weapon ? ITEMS[S.equip.weapon.id] : null;
+  const lvls = levelsOf(S.xp);
+  el.innerHTML = `<div class="cb-head">${esc(w ? w.name : 'Unarmed')}<br><span>Combat Lvl: ${combatLevel(lvls)}</span></div>
+    <div class="styles">${STYLES.map(([id, label, sub]) => `<button class="style${S.style === id ? ' on' : ''}" data-s="${id}">${label}<small>${w?.style === 'ranged' ? 'Ranged XP' : w?.style === 'magic' ? 'Magic XP' : sub}</small></button>`).join('')}</div>
+    <button class="stone opt-btn" id="retal">Auto Retaliate: ${S.retaliate ? 'On' : 'Off'}</button>
+    <p class="note">Attack monsters by clicking them. In the Wilderness (Zuidoost) you can also attack players of the same mode.</p>`;
+  el.querySelectorAll('.style').forEach(b => b.onclick = () => send({ t: 'style', style: b.dataset.s }));
+  $('#retal').onclick = () => send({ t: 'style', retaliate: !S.retaliate });
+}
+
+// ---------------- quest tab
+function drawQuests() {
+  const el = $('#tab-quests');
+  if (!el) return;
+  el.innerHTML = `<div class="q-head">Quest Points: ${S.qp || 0}</div><div class="q-list">${(S.quests || []).map(q => `<div class="q q${q.state}" data-id="${esc(q.id)}">${esc(q.name)}</div>`).join('') || '<p class="note">No quests yet.</p>'}</div>`;
+  el.querySelectorAll('.q').forEach(d => d.onclick = () => send({ t: 'qjournal', id: d.dataset.id }));
+}
+
+// ---------------- XP drops and level-ups
+function xpDrop(skill, amount) {
+  const el = document.createElement('div');
+  el.className = 'xpdrop';
+  el.innerHTML = `${iconImg(SKILL_ICON[skill] || 'stats', 'ico xpico')}<span>+${Math.round(amount)}</span>`;
+  $('#xpdrops').appendChild(el);
+  setTimeout(() => el.remove(), 1800);
+}
+
+function levelFireworks(skill, level) {
+  const el = document.createElement('div');
+  el.className = 'levelup';
+  el.innerHTML = `${iconImg(SKILL_ICON[skill] || 'stats', 'ico')}<b>${skill[0].toUpperCase() + skill.slice(1)} level ${level}!</b>`;
+  $('#overlay').appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+// ---------------- region banner and Wilderness level
+function showRegion(m) {
+  S.region = m;
+  const changed = $('#region-banner').dataset.id !== m.id;
+  $('#region-banner').dataset.id = m.id;
+  if (changed) {
+    const b = $('#region-banner');
+    b.innerHTML = `<b>${esc(m.name)}</b>${m.role ? `<span>${esc(m.role)}</span>` : ''}`;
+    b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
+  }
+  const w = $('#wild-level');
+  w.hidden = !m.wild;
+  if (m.wild) w.innerHTML = `${iconImg('skull', 'ico orb-ico')}<span>Level: ${m.wild}<br><small>${esc(m.zone)}</small></span>`;
+  registry.msgHandlers['region:client']?.(m, registry.ctx);
+}
+
+// ---------------- "What would you like to make?"
+function showMake(m) {
+  const d = $('#chat-dialog');
+  S.iface = 'make';
+  $('#chatbox').classList.remove('collapsed');
+  d.hidden = false;
+  let qty = +(store.get('makeQty') || 1);
+  const draw = () => {
+    d.innerHTML = `<div class="title">${esc(m.title)}</div><div class="make-items">${m.items.map((it, i) => `<div class="make-it" data-i="${i}">${iconImg(it.id)}<span>${esc(it.label)}</span></div>`).join('')}</div>
+      <div class="make-qty">${[1, 5, 10, 28].map(n => `<button data-q="${n}" class="${qty === n ? 'on' : ''}">${n === 28 ? 'All' : n}</button>`).join('')}</div>`;
+    d.querySelectorAll('.make-qty button').forEach(b => b.onclick = e => { e.stopPropagation(); qty = +b.dataset.q; store.set('makeQty', qty); draw(); });
+    d.querySelectorAll('.make-it').forEach(b => b.onclick = e => { e.stopPropagation(); send({ t: 'make', i: +b.dataset.i, qty }); hideDialog(); });
+  };
+  d.onclick = null;
+  draw();
+}
 $('#orb-hp').onclick = () => chat(`Hitpoints: ${S.hp}/${S.mhp}. Eat food to heal.`);
+$('#orb-pray').onclick = () => registry.msgHandlers['orb:prayer'] ? registry.msgHandlers['orb:prayer']({}, registry.ctx) : chat(`Prayer points: ${S.pr}. Bury bones and pray at altars to train Prayer.`);
 $('#orb-real').onclick = () => (S.real || gpsWatch !== null ? stopGps(true) : askRealMode());
 $('#orb-map').onclick = showMap;
 $('#compass').onclick = () => { renderer.yaw = 0; };
@@ -682,6 +816,8 @@ function showMap() {
 document.querySelectorAll('[data-icon]').forEach(el => { el.innerHTML = iconImg(el.dataset.icon, el.classList.contains('ic') ? 'ico orb-ico' : 'ico'); });
 pane('welcome');
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+
+registry.ctx = { S, send, chat, openWindow, closeWindow, iconImg, showMenu, esc, ITEMS, OBJECT_TYPES, get renderer() { return renderer; }, store, drawInv, levelsOf, pressable, itemGrid };
 
 // Debug handle for automated tests and the browser console.
 window.__amsescape = { S, get renderer() { return renderer; } };
