@@ -1,9 +1,18 @@
 // World content: NPCs, shops, dialogues, item spawns and landmarks, all placed at real Amsterdam coordinates.
 import { toTile } from '../shared/geo.js';
+import { LANDMARK_MODELS } from '../shared/landmarks.js';
+import { ENCLOSURES, ZOO_CENTER, ZOO_ENTRANCE } from '../shared/zoo.js';
 
 const T = (lat, lon) => { const t = toTile(lat, lon); return { x: Math.round(t.x), z: Math.round(t.z) }; };
 
 export const SPAWN = T(52.378, 4.9); // Stationsplein, in front of Amsterdam Centraal
+
+// The ranged guild stands where Club Kaliber is in the Jordaan. RG(dx, dz) is relative to the guild's centre.
+const guild = LANDMARK_MODELS.find(l => l.id === 'rangedguild');
+export const RG = (dx, dz) => {
+  const c = Math.cos(guild.rot), s = Math.sin(guild.rot);
+  return { x: Math.round(guild.x + dx * c + dz * s), z: Math.round(guild.z - dx * s + dz * c) };
+};
 
 const L = (g, skin, hair, top, legs) => ({ g, skin, hair, top, legs });
 
@@ -30,6 +39,38 @@ export const NPCS = [
   // Vondelpark
   { name: 'Eend', at: T(52.358, 4.8686), model: 'duck', talk: 'duck', wander: 6, chatter: ['Kwak!'] },
   { name: 'Hardloper', at: T(52.3585, 4.8700), look: L(1, 2, 3, 9, 5), talk: 'runner', wander: 12, chatter: ['*puff* *puff*'] },
+
+  // Albert Heijn general stores (blue uniform)
+  ...[[52.37790, 4.89915], [52.37270, 4.89050], [52.36870, 4.90100], [52.37780, 4.88220], [52.36180, 4.89070], [52.35770, 4.88080]]
+    .map(([lat, lon], i) => ({ name: 'AH Medewerker', at: T(lat, lon), look: { ...L(i % 2, i % 6, (i * 3) % 8, 1, 5), topC: '#00a0e2' }, talk: 'ah', shop: 'ah' })),
+
+  // clothing stores
+  { name: 'Kalverstraat Kleding', at: T(52.37000, 4.89160), look: L(1, 0, 3, 11, 5), talk: 'kleding', shop: 'kalverstraat' },
+  { name: 'Boetiek Bo', at: T(52.37070, 4.88480), look: L(1, 1, 6, 4, 5), talk: 'boetiek', shop: 'negenstraatjes' },
+  { name: 'Marktkoopman Mo', at: T(52.35575, 4.89420), look: L(0, 3, 0, 7, 1), talk: 'markt', shop: 'markt', chatter: ['Jassen! Jassen! Regenjassen!', 'Twee voor een tientje!'] },
+
+  // magic stores
+  { name: 'Tovenaar Teun', at: T(52.36760, 4.90190), look: { ...L(0, 0, 5, 1, 1), topC: '#2c3a8c' }, eq: { head: 'wizard_hat', legs: 'wizard_skirt', weapon: 'staff' }, talk: 'teun', shop: 'runes' },
+  { name: 'Heks Hennie', at: T(52.37540, 4.90010), look: { ...L(1, 5, 7, 5, 5), topC: '#2a2a2a' }, eq: { head: 'wizard_hat', weapon: 'staff_of_fire' }, talk: 'hennie', shop: 'staffs', chatter: ['Hehehe...', 'Eye of newt, tail of herring...'] },
+  { name: 'Magiër Mila', at: T(52.37930, 4.88600), look: { ...L(1, 2, 3, 1, 1), topC: '#5a2d6b' }, eq: { head: 'wizard_hat' }, talk: 'mila', shop: 'magicmix' },
+
+  // ranged guild (Jordaan)
+  { name: 'Boogschutter Bram', at: RG(-6, 14), look: L(0, 0, 2, 2, 10), eq: { weapon: 'willow_longbow', head: 'leather_cowl' }, talk: 'bram', shop: 'bows' },
+  { name: 'Leerbewerker Lotte', at: RG(6, 14), look: L(1, 0, 1, 10, 10), eq: { body: 'leather_vest' }, talk: 'lotte', shop: 'leather' },
+  { name: 'Wedstrijdjury', at: RG(0, 17), look: L(0, 1, 5, 6, 5), eq: { head: 'flat_cap' }, talk: 'judge' },
+
+  // Artis zoo: a keeper at the gate and the animals in their enclosures
+  { name: 'Dierenverzorger Dirk', at: { x: Math.round(ZOO_CENTER.x + ZOO_ENTRANCE.x + 4), z: Math.round(ZOO_CENTER.z + ZOO_ENTRANCE.z - 3) }, look: { ...L(0, 0, 3, 2, 10), topC: '#3a5a2a' }, eq: { head: 'flat_cap', feet: 'leather_boots' }, talk: 'zookeeper' },
+  ...ENCLOSURES.flatMap(e => Array.from({ length: e.count }, (_, i) => {
+    const a = i / e.count * Math.PI * 2, r = Math.min(4, e.radius) * (i % 2 ? 0.5 : 1);
+    return {
+      name: e.name.replace(/ves$/, 'f').replace(/s$/, ''), model: e.animal, ex: e.ex,
+      at: { x: Math.round(e.cx + Math.cos(a) * r), z: Math.round(e.cz + Math.sin(a) * r) },
+      home: { x: Math.round(e.cx), z: Math.round(e.cz) }, wander: Math.max(1, e.radius),
+      ...(e.animal === 'parrot' ? { talk: 'parrot', chatter: ['Squawk!', 'Lekker!', 'Stroopwafel! Squawk!'] } : {}),
+      ...(e.animal === 'wolf' ? { chatter: ['Awoooo!'] } : {}),
+    };
+  })),
 ];
 
 export const SHOPS = {
@@ -38,6 +79,15 @@ export const SHOPS = {
   zoet: { name: "Sanne's Stroopwafels", stock: ['stroopwafel', 'poffertjes'] },
   wapens: { name: "Willem's Wapenhandel", stock: ['bronze_dagger', 'iron_sword', 'steel_longsword', 'mithril_scimitar', 'wooden_shield', 'iron_helm', 'leather_jacket'] },
   bloemen: { name: "Bep's Bloemen", stock: ['tulip'] },
+  ah: { name: 'Albert Heijn', general: true, stock: ['bread', 'broodje_kaas', 'kroket', 'chocomel', 'stroopwafel', 'gouda', 'bucket', 'hammer', 'tinderbox'] },
+  kalverstraat: { name: 'Kalverstraat Kleding', stock: ['denim_jeans', 'black_jeans', 'hoodie', 'striped_shirt', 'orange_shirt', 'sneakers', 'beanie'] },
+  negenstraatjes: { name: 'Boetiek Bo (De 9 Straatjes)', stock: ['summer_dress', 'leather_jacket', 'red_trousers', 'flat_cap', 'leather_boots', 'raincoat'] },
+  markt: { name: 'Albert Cuyp Kledingkraam', stock: ['raincoat', 'beanie', 'sneakers', 'denim_jeans', 'clogs', 'orange_shirt'] },
+  runes: { name: "Teun's Runenwinkel", stock: ['air_rune', 'water_rune', 'earth_rune', 'fire_rune', 'mind_rune', 'chaos_rune'] },
+  staffs: { name: "Hennie's Staven & Gewaden", stock: ['staff', 'staff_of_air', 'staff_of_water', 'staff_of_earth', 'staff_of_fire', 'wizard_hat', 'wizard_robe', 'wizard_skirt'] },
+  magicmix: { name: "Mila's Magische Molen", stock: ['air_rune', 'mind_rune', 'water_rune', 'staff', 'wizard_hat', 'wizard_robe'] },
+  bows: { name: "Bram's Bogen & Pijlen", stock: ['shortbow', 'oak_shortbow', 'willow_longbow', 'maple_shortbow', 'bronze_arrow', 'iron_arrow', 'steel_arrow', 'mithril_arrow'] },
+  leather: { name: "Lotte's Leer", stock: ['leather_cowl', 'leather_vest', 'leather_boots'] },
 };
 
 // Dialogue scripts. Each node is a list of steps: {npc}, {player}, {opts: [[label, node]]}, {act}, {goto}.
@@ -124,6 +174,43 @@ export const DIALOGS = {
     poor: [{ npc: "You don't have 5 coins? Here, I'd give you some, but I don't have any either." }],
   },
   runner: { start: [{ npc: "*puff* Can't talk... *puff* ...doing a lap of the park... *puff*" }] },
+  parrot: { start: [{ npc: 'Squawk! Polly wil een stroopwafel!' }, { player: 'Sorry, I ate them all.' }, { npc: 'SQUAWK!' }] },
+  zookeeper: {
+    start: [{ npc: "Welkom in Artis! Founded in 1838, the oldest zoo in the Netherlands. Mind the fences, the animals don't like visitors in their enclosures." }, { opts: [['Which animals do you have?', 'animals'], ['Can I feed them?', 'feed'], ['Bye.', 'end']] }],
+    animals: [{ player: 'Which animals do you have?' }, { npc: 'Penguins, monkeys, gorillas, flamingos, parrots, wolves, lions, zebras, elephants, giraffes and camels. Follow the paths and you will find them all.' }],
+    feed: [{ player: 'Can I feed them?' }, { npc: 'Absolutely not. Especially not the stroopwafels. The parrot has a problem.' }],
+  },
+  ah: {
+    start: [{ npc: 'Goedendag! Welkom bij Albert Heijn. Heeft u een bonuskaart?' }, { opts: [["Let's see what you sell.", 'shop'], ['Do you buy things too?', 'buy'], ["No bonuskaart, sorry.", 'nokaart']] }],
+    shop: [{ act: 'shop' }],
+    buy: [{ player: 'Do you buy things too?' }, { npc: "We're a general store, so we'll buy almost anything. Not for much, mind you." }, { act: 'shop' }],
+    nokaart: [{ player: 'No bonuskaart, sorry.' }, { npc: "Then you pay full price. That's what we call 'tourist price'." }],
+  },
+  kleding: { start: [{ npc: 'Hoi! Looking for something to wear on the Kalverstraat? Everyone else is.' }, { opts: [['Show me your clothes.', 'shop'], ['Just browsing.', 'end']] }], shop: [{ act: 'shop' }] },
+  boetiek: { start: [{ npc: "Welcome to the Negen Straatjes. Everything here is handmade, vintage, or both." }, { opts: [['Show me.', 'shop'], ['Too fancy for me.', 'end']] }], shop: [{ act: 'shop' }] },
+  markt: { start: [{ npc: 'Kijken, kijken, niet kopen? No, no, you buy! Best prices on the whole Albert Cuyp!' }, { opts: [["Alright, let's see.", 'shop'], ['No thanks.', 'end']] }], shop: [{ act: 'shop' }] },
+  teun: {
+    start: [{ npc: "Ah, a budding wizard. Runes, runes, runes! Air, water, earth, fire, and the mind and chaos runes that power them." }, { opts: [['I want to buy some runes.', 'shop'], ['How does magic work?', 'how'], ['Bye.', 'end']] }],
+    shop: [{ act: 'shop' }],
+    how: [{ player: 'How does magic work?' }, { npc: 'Wield a staff and carry runes. In a duel, your staff casts the strongest spell you know and have runes for.' }, { npc: 'Wind Strike needs an air and a mind rune. A staff of air gives you endless air runes. Heks Hennie on the Zeedijk sells those.' }],
+  },
+  hennie: { start: [{ npc: 'Hehehe. Staffs, robes and pointy hats, dearie. Very fashionable on the Zeedijk.' }, { opts: [["Let's see them.", 'shop'], ['Are you a witch?', 'witch']] }], shop: [{ act: 'shop' }], witch: [{ player: 'Are you a witch?' }, { npc: "I'm a licensed independent magic retailer, thank you very much." }] },
+  mila: { start: [{ npc: 'Welkom in de Magische Molen. A little bit of everything for the Jordaan wizard.' }, { opts: [['Show me.', 'shop'], ['Bye.', 'end']] }], shop: [{ act: 'shop' }] },
+  bram: {
+    start: [{ npc: 'Welcome to the Kaliber Ranged Guild! Bows, arrows, the lot. Wield a bow, put arrows in your quiver, and let fly.' }, { opts: [["I'd like to buy something.", 'shop'], ['How does ranged combat work?', 'how'], ['Bye.', 'end']] }],
+    shop: [{ act: 'shop' }],
+    how: [{ player: 'How does ranged combat work?' }, { npc: 'Wield a bow and wield your arrows too. Each shot uses an arrow. Better arrows hit harder, better bows hit more often.' }],
+  },
+  lotte: { start: [{ npc: 'Leather armour, made right here in the guild. Light enough to run in, tough enough to stop a stray arrow. Mostly.' }, { opts: [['Show me.', 'shop'], ['Bye.', 'end']] }], shop: [{ act: 'shop' }] },
+  judge: {
+    start: [{ npc: 'Welcome to the archery competition! 10 coins for 10 shots at the targets. The better you shoot, the bigger the prize.' }, { opts: [["I'll have a go.", 'play'], ['What do I win?', 'prize'], ['No thanks.', 'end']] }],
+    play: [{ player: "I'll have a go." }, { act: 'archery' }],
+    prize: [{ player: 'What do I win?' }, { npc: 'Ranged experience, and coins for a good score. A bullseye is worth 100 points. Bring your own bow!' }, { goto: 'start2' }],
+    start2: [{ opts: [["I'll have a go.", 'play'], ['No thanks.', 'end']] }],
+    nobow: [{ npc: "You'll need to wield a bow first. Bram sells them, just over there." }],
+    broke: [{ npc: "It's 10 coins to enter. Come back when you've got them." }],
+    started: [{ npc: 'Right, the targets are ready. Take your time... but not too much time.' }],
+  },
 };
 
 // Fixed ground item spawns. Only real-life players standing there can take them.

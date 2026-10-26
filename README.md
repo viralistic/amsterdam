@@ -17,6 +17,11 @@ Plays in any browser (desktop or phone) and installs as an app (PWA) from the br
 - **Map:** the map button opens Google Maps (map, satellite and Street View) at your character's position.
 - **The city:** every street, canal, bridge, park and building comes from OpenStreetMap. Canal houses get gabled roofs and the canals get stone quays. The Royal Palace, Nationaal Monument, Nieuwe Kerk, De Bijenkorf and Oude Kerk are hand-built models at their real locations.
 
+- **Combat styles:** melee, ranged (bow plus arrows in the quiver slot) and magic (staff plus runes, autocasting the best strike or bolt spell you can). Arrows and spells fly between duellers.
+- **Artis zoo:** laid out like the classic zoo map, with fenced enclosures for penguins, monkeys, gorillas, flamingos, parrots, wolves, lions, zebras, elephants, giraffes and camels, ringed by dirt paths. The keeper waits at the ARTIS gate on the Plantage Kerklaan.
+- **Shops:** Albert Heijn general stores (Centraal, Dam, Jodenbreestraat, Westerstraat, Vijzelstraat, Museumplein) that also buy anything; clothing on the Kalverstraat, in De 9 Straatjes and at the Albert Cuyp; runes on the Waterlooplein, staffs and robes on the Zeedijk and the Magische Molen in the Jordaan.
+- **Kaliber Ranged Guild (Jordaan):** guild tower, target range, bow and leather shops, and an archery competition that pays out ranged XP and coins. Its position is set in `shared/landmarks.js` (`rangedguild`).
+
 NPCs include the Gemeente Gids (tutorial and starter kit), Haring Henk, Kaas Kees, Stroopwafel Sanne, Wapensmid Willem at De Waag, Bloemen Bep at the Bloemenmarkt, bankers at Centraal and Dam, a Fietsendief, Rembrandt and some ducks.
 
 ## Run it
@@ -37,6 +42,8 @@ Environment variables:
 | `FAKE_MAP` | unset | `1` uses a generated test map instead of OpenStreetMap |
 | `OVERPASS_URLS` | public mirrors | Comma-separated Overpass API endpoints |
 | `REAL_VISIBLE_TO_GHOSTS` | unset | `1` lets ghosts see real-life players |
+
+In test mode (`FAKE_MAP=1`) chat commands help with testing: `::tele x z`, `::give item_id qty`, `::xp skill amount`.
 
 ## Deploy
 

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
-import { ITEMS, EQUIP_SLOTS, SKILLS, levelForXp, combatLevel } from '../shared/items.js';
+import { ITEMS, EQUIP_SLOTS, SKILLS, SPELLS, levelForXp, combatLevel } from '../shared/items.js';
 import { toTile, cheb } from '../shared/geo.js';
 import { sanitizeLook } from '../shared/look.js';
 import * as db from './db.js';
@@ -18,6 +18,7 @@ const VIEW = 64; // tiles
 const REAL_RANGE = 14; // GPS is fuzzy, so real-life players interact from further away
 const REAL_VISIBLE_TO_GHOSTS = process.env.REAL_VISIBLE_TO_GHOSTS === '1';
 const WORLD_LIMIT = 20000; // metres from Centraal; real-life mode only works around Amsterdam
+const DEV = process.env.FAKE_MAP === '1'; // offline test mode enables ::tele and ::give
 
 db.load();
 
@@ -78,7 +79,7 @@ const validName = n => /^[A-Za-z0-9][A-Za-z0-9 _-]{0,10}[A-Za-z0-9]$|^[A-Za-z0-9
 const now = () => Date.now();
 
 function newRecord(name, look, auth) {
-  return { name, ...auth, look, x: SPAWN.x, z: SPAWN.z, inv: Array(28).fill(null), equip: {}, bank: [], xp: { attack: 0, strength: 0, defence: 0, hitpoints: 1154, exploring: 0 }, hp: 10, energy: 10000, flags: {}, created: now() };
+  return { name, ...auth, look, x: SPAWN.x, z: SPAWN.z, inv: Array(28).fill(null), equip: {}, bank: [], xp: { attack: 0, strength: 0, defence: 0, hitpoints: 1154, ranged: 0, magic: 0, exploring: 0 }, hp: 10, energy: 10000, flags: {}, created: now() };
 }
 
 // ---------------------------------------------------------------- Helpers
@@ -144,7 +145,7 @@ function invRemove(p, id, q) {
 }
 
 function bonuses(p) {
-  const b = { att: 0, str: 0, def: 0 };
+  const b = { att: 0, str: 0, def: 0, rng: 0, rstr: 0, mag: 0 };
   for (const s of Object.values(p.rec.equip)) if (s) for (const k in b) b[k] += ITEMS[s.id][k] || 0;
   return b;
 }
@@ -258,6 +259,13 @@ function dialogAction(p, act) {
     case 'tip':
       if (!invRemove(p, 'coins', 5)) return 'poor';
       return 'thanks';
+    case 'archery': {
+      const w = p.rec.equip.weapon && ITEMS[p.rec.equip.weapon.id];
+      if (w?.style !== 'ranged') return 'nobow';
+      if (!invRemove(p, 'coins', 10)) return 'broke';
+      p.archery = { shots: 10, score: 0, wait: 2, judge: npc };
+      return 'started';
+    }
   }
   return null;
 }
@@ -397,20 +405,80 @@ function combatTick(p) {
   const w = p.rec.equip.weapon ? ITEMS[p.rec.equip.weapon.id] : null;
   p.atk = (w?.speed || 4) - 1;
   const pb = bonuses(p), ob = bonuses(o);
-  const attRoll = (lv(p, 'attack') + 8) * (pb.att + 64);
-  const defRoll = (lv(o, 'defence') + 9) * (ob.def + 64);
-  const chance = attRoll > defRoll ? 1 - (defRoll + 2) / (2 * (attRoll + 1)) : attRoll / (2 * (defRoll + 1));
-  const maxHit = Math.floor(0.5 + (lv(p, 'strength') + 8) * (pb.str + 64) / 640);
+  const roll = (att, def) => att > def ? 1 - (def + 2) / (2 * (att + 1)) : att / (2 * (def + 1));
+  const style = attackStyle(p, w);
+  let chance, maxHit, proj = null;
+  if (style.kind === 'ranged') {
+    chance = roll((lv(p, 'ranged') + 8) * (pb.rng + 64), (lv(o, 'defence') + 9) * (ob.def + 64));
+    maxHit = Math.floor(0.5 + (lv(p, 'ranged') + 8) * (pb.rstr + 64) / 640);
+    proj = { kind: 'arrow', color: ITEMS[style.ammo].metal };
+  } else if (style.kind === 'magic') {
+    // magic defence leans on the defender's magic level, as in the old days
+    const mdef = Math.floor(lv(o, 'magic') * 0.7 + lv(o, 'defence') * 0.3);
+    chance = roll((lv(p, 'magic') + 9) * (pb.mag + 64), (mdef + 9) * (ob.def + ob.mag + 64));
+    maxHit = style.spell.max;
+    proj = { kind: 'spell', color: style.spell.color };
+  } else {
+    chance = roll((lv(p, 'attack') + 8) * (pb.att + 64), (lv(o, 'defence') + 9) * (ob.def + 64));
+    maxHit = Math.floor(0.5 + (lv(p, 'strength') + 8) * (pb.str + 64) / 640);
+  }
   const dmg = Math.random() < chance ? Math.min(o.rec.hp, Math.floor(Math.random() * (maxHit + 1))) : 0;
   o.rec.hp -= dmg;
-  tickHits.push({ target: o, d: dmg });
-  if (dmg > 0) { for (const s of ['attack', 'strength', 'defence']) addXp(p, s, dmg * 4 / 3); addXp(p, 'hitpoints', dmg * 4 / 3); }
+  tickHits.push({ target: o, from: p, d: dmg, proj });
+  if (style.kind === 'ranged') { addXp(p, 'ranged', dmg * 4); if (dmg) addXp(p, 'hitpoints', dmg * 4 / 3); }
+  else if (style.kind === 'magic') { addXp(p, 'magic', style.spell.xp + dmg * 2); if (dmg) addXp(p, 'hitpoints', dmg * 4 / 3); }
+  else if (dmg > 0) { for (const s of ['attack', 'strength', 'defence']) addXp(p, s, dmg * 4 / 3); addXp(p, 'hitpoints', dmg * 4 / 3); }
   if (o.rec.hp <= 0) {
     msg(p, `You have defeated ${o.name}!`, 'duel');
     p.rec.hp = lv(p, 'hitpoints');
     endDuel(p, null);
     die(o, p);
   }
+}
+
+// Works out how a player attacks with what they hold, using up arrows or runes as it goes.
+function attackStyle(p, w) {
+  if (w?.style === 'ranged') {
+    const ammo = p.rec.equip.ammo;
+    if (!ammo || ITEMS[ammo.id].slot !== 'ammo') { if (!p.warnedAmmo) { p.warnedAmmo = true; msg(p, 'There is no ammo left in your quiver.'); } return { kind: 'melee' }; }
+    ammo.q--;
+    if (ammo.q <= 0) { delete p.rec.equip.ammo; msg(p, "That was your last arrow."); }
+    p.equipDirty = true;
+    return { kind: 'ranged', ammo: ammo.id };
+  }
+  if (w?.style === 'magic') {
+    const magic = lv(p, 'magic');
+    const has = (id, n) => w.provides === id || invCount(p, id) >= n;
+    const spell = SPELLS.find(sp => sp.lvl <= magic && Object.entries(sp.runes).every(([id, n]) => has(id, n)));
+    if (!spell) { if (!p.warnedRunes) { p.warnedRunes = true; msg(p, "You don't have enough runes to cast a spell. You bash them with your staff instead."); } return { kind: 'melee' }; }
+    for (const [id, n] of Object.entries(spell.runes)) if (w.provides !== id) invRemove(p, id, n);
+    return { kind: 'magic', spell };
+  }
+  return { kind: 'melee' };
+}
+
+// Archery competition: one shot every two ticks, scored on a five-ring target.
+function archeryTick(p) {
+  const a = p.archery;
+  if (!a) return;
+  if (cheb(p.x, p.z, a.judge.x, a.judge.z) > 25) { p.archery = null; msg(p, 'You walked away from the competition.'); return; }
+  if (--a.wait > 0) return;
+  a.wait = 2;
+  const w = p.rec.equip.weapon && ITEMS[p.rec.equip.weapon.id];
+  const skill = lv(p, 'ranged') + (w?.rng || 0);
+  const r = Math.random() * 100 - Math.min(45, skill * 0.6);
+  const [pts, text] = r < 5 ? [100, 'Bullseye!'] : r < 20 ? [50, 'Hit the yellow!'] : r < 40 ? [30, 'Hit the red.'] : r < 60 ? [20, 'Hit the blue.'] : r < 80 ? [10, 'Hit the black.'] : [0, 'Missed the target!'];
+  a.score += pts;
+  a.shots--;
+  msg(p, `${text} (${pts} points, ${a.score} total, ${a.shots} shots left)`);
+  if (pts >= 50) say(a.judge, 'n', text);
+  addXp(p, 'ranged', pts / 2);
+  if (a.shots > 0) return;
+  const prize = Math.floor(a.score / 8);
+  msg(p, `The competition is over. You scored ${a.score} points${prize ? ` and win ${prize} coins!` : '.'}`, 'level');
+  if (prize && !invAdd(p, 'coins', prize)) dropGround('coins', prize, p.x, p.z);
+  say(a.judge, 'n', a.score >= 500 ? 'Outstanding shooting!' : a.score >= 250 ? 'Well done!' : 'Better luck next time.');
+  p.archery = null;
 }
 
 function die(p, killer) {
@@ -518,6 +586,7 @@ function handle(p, m) {
     case 'say': {
       const text = String(m.text || '').replace(/[\x00-\x1f<>]/g, '').trim().slice(0, 80);
       if (!text) return;
+      if (DEV && text.startsWith('::')) return devCommand(p, text.slice(2).split(/\s+/));
       if (now() - (p.lastSay || 0) < 600) return;
       p.lastSay = now();
       return say(p, 'p', text);
@@ -538,9 +607,9 @@ function handle(p, m) {
     case 'unequip': {
       const s = p.rec.equip[m.slot];
       if (!s) return;
-      if (!canAdd(p, s.id, 1)) return msg(p, "You don't have enough free inventory space to do that.");
+      if (!canAdd(p, s.id, ITEMS[s.id].stack ? s.q : 1)) return msg(p, "You don't have enough free inventory space to do that.");
       delete p.rec.equip[m.slot];
-      invAdd(p, s.id, 1); p.equipDirty = true;
+      invAdd(p, s.id, s.q || 1); p.equipDirty = true;
       return;
     }
     case 'shop': {
@@ -594,6 +663,12 @@ function handle(p, m) {
   }
 }
 
+function devCommand(p, [cmd, a, b]) {
+  if (cmd === 'tele') { p.x = Math.round(+a); p.z = Math.round(+b); p.path = []; return; }
+  if (cmd === 'give' && ITEMS[a]) { invAdd(p, a, Math.max(1, +b || 1)); return; }
+  if (cmd === 'xp' && SKILLS.includes(a)) { addXp(p, a, +b || 0); return; }
+}
+
 function invOp(p, m) {
   const inv = p.rec.inv;
   if (m.op === 'swap') {
@@ -622,10 +697,24 @@ function invOp(p, m) {
     return;
   }
   if (m.op === 'wield' && def.slot) {
-    if (def.req && lv(p, 'attack') < def.req) return msg(p, `You need an Attack level of ${def.req} to wield this.`);
-    const old = p.rec.equip[def.slot];
-    p.rec.equip[def.slot] = { id: s.id, q: 1 };
-    inv[m.slot] = old || null;
+    const skill = def.skill || 'attack';
+    if (def.req && lv(p, skill) < def.req) return msg(p, `You need a${skill === 'attack' ? 'n' : ''} ${skill[0].toUpperCase() + skill.slice(1)} level of ${def.req} to wield this.`);
+    const eq = p.rec.equip;
+    // two-handed bows and shields don't mix
+    const clash = def.twoHanded ? 'shield' : def.slot === 'shield' && eq.weapon && ITEMS[eq.weapon.id].twoHanded ? 'weapon' : null;
+    if (clash && eq[clash]) {
+      if (freeSlots(p) < 1) return msg(p, "You don't have enough free inventory space to do that.");
+      invAdd(p, eq[clash].id, 1); delete eq[clash];
+    }
+    const old = eq[def.slot];
+    if (def.stack) {
+      if (old && old.id === s.id) { old.q += s.q; inv[m.slot] = null; }
+      else { eq[def.slot] = { id: s.id, q: s.q }; inv[m.slot] = old || null; }
+    } else {
+      eq[def.slot] = { id: s.id, q: 1 };
+      inv[m.slot] = old || null;
+    }
+    p.warnedAmmo = p.warnedRunes = false;
     p.invDirty = p.equipDirty = true;
   }
 }
@@ -688,6 +777,7 @@ async function login(ws, ip, m) {
     db.put(key, rec);
   } else if (!rec || !(await db.checkPassword(pass, rec))) return fail('Invalid username or password.');
   if (ws.readyState !== 1) return;
+  for (const sk of SKILLS) if (rec.xp[sk] == null) rec.xp[sk] = 0;
   const old = online.get(key);
   if (old) { msg(old, 'You have been logged in from another location.', 'warn'); old.ws.close(); disconnect(old); }
   const p = {
@@ -745,7 +835,8 @@ function tick() {
     const w = n.def.wander;
     if (w && Math.random() < 0.12) {
       const nx = n.x + Math.round(Math.random() * 2 - 1), nz = n.z + Math.round(Math.random() * 2 - 1);
-      if (cheb(nx, nz, n.def.at.x, n.def.at.z) <= w) { n.x = nx; n.z = nz; }
+      const home = n.def.home || n.def.at;
+      if (cheb(nx, nz, home.x, home.z) <= w) { n.x = nx; n.z = nz; }
     }
     if (n.def.chatter && Math.random() < 0.006) say(n, 'n', n.def.chatter[Math.floor(Math.random() * n.def.chatter.length)]);
   }
@@ -758,6 +849,7 @@ function tick() {
     if ((p.iface === 'shop' || p.iface === 'bank' || p.iface === 'dlg') && p.path.length) closeIface(p);
   }
   for (const p of players.values()) combatTick(p);
+  for (const p of players.values()) archeryTick(p);
   for (const p of players.values()) {
     if (tickNo % 100 === 0 && p.rec.hp < lv(p, 'hitpoints')) p.rec.hp++;
     if (p.real && tickNo % 25 === 0 && Math.random() < 0.5) {
@@ -783,10 +875,10 @@ function tick() {
       for (const s of EQUIP_SLOTS) if (o.rec.equip[s]) eq[s] = o.rec.equip[s].id;
       ents.push({ k: 'p', id: o.id, n: o.name, x: o.x, z: o.z, l: o.rec.look, eq, g: o.real ? 0 : 1, cb: cbLevel(o), hp: o.rec.hp, mhp: lv(o, 'hitpoints') });
     }
-    for (const n of npcs) if (inRange(p, n, VIEW)) ents.push({ k: 'n', id: n.id, n: n.name, x: n.x, z: n.z, l: n.def.look, m: n.def.model, talk: !!n.def.talk, shop: !!n.def.shop, bank: !!n.def.bank });
+    for (const n of npcs) if (inRange(p, n, VIEW)) ents.push({ k: 'n', id: n.id, n: n.name, x: n.x, z: n.z, l: n.def.look, eq: n.def.eq, m: n.def.model, ex: n.def.ex, talk: !!n.def.talk, shop: !!n.def.shop, bank: !!n.def.bank });
     const items = [];
     for (const g of ground.values()) if (inRange(p, g, VIEW) && (!g.forP || g.forP === p.id)) items.push({ id: g.id, i: g.item, q: g.q, x: g.x, z: g.z });
-    const hits = tickHits.filter(h => canSee(p, h.target)).map(h => ({ id: h.target.id, d: h.d, hp: h.target.rec.hp, mhp: lv(h.target, 'hitpoints') }));
+    const hits = tickHits.filter(h => canSee(p, h.target)).map(h => ({ id: h.target.id, from: h.from?.id, d: h.d, hp: h.target.rec.hp, mhp: lv(h.target, 'hitpoints'), proj: h.proj }));
     send(p, { t: 'tick', n: tickNo, you: { x: p.x, z: p.z, hp: p.rec.hp, mhp: lv(p, 'hitpoints'), en: Math.floor(p.rec.energy / 100), run: p.run, real: p.real, duel: p.duel ? p.duel.opp.id : 0 }, e: ents, gi: items, h: hits });
   }
 

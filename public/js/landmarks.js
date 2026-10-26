@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { LANDMARK_MODELS } from '/shared/landmarks.js';
 import { facadeTexture } from './world.js';
+import { ENCLOSURES, ZOO_BOUNDS_WORLD, ZOO_CENTER, ZOO_ENTRANCE } from '/shared/zoo.js';
 
 const SANDSTONE = '#cbbd96', STONE = '#d9d3c5', BRICK = '#7a3f2b', OLDBRICK = '#86654a', SLATE = '#454c52', COPPER = '#5c8f74', LEAD = '#5d6264', GOLD = '#e0b530';
 
@@ -56,6 +57,13 @@ class Builder {
     }
     if (r1 >= 0.01) this.cap(b, y1, color);
   }
+  // flat disc facing +z (for targets)
+  disc(cx, cy, z, r, n, color) {
+    for (let i = 0; i < n; i++) {
+      const a0 = i / n * Math.PI * 2, a1 = (i + 1) / n * Math.PI * 2;
+      this.tri([cx, cy, z], [cx + Math.cos(a0) * r, cy + Math.sin(a0) * r, z], [cx + Math.cos(a1) * r, cy + Math.sin(a1) * r, z], color);
+    }
+  }
   geometry() {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos, 3));
@@ -67,7 +75,7 @@ class Builder {
 }
 
 // window bay size (width, storey height) per landmark: palaces and churches have much bigger windows than houses
-const BAYS = { paleis: [5, 5.2], monument: [4, 3.2], nieuwekerk: [7, 10], bijenkorf: [5, 4.2], oudekerk: [7, 9] };
+const BAYS = { paleis: [5, 5.2], monument: [4, 3.2], nieuwekerk: [7, 10], bijenkorf: [5, 4.2], oudekerk: [7, 9], rangedguild: [5, 4] };
 
 const BUILD = {
   paleis(b) {
@@ -120,6 +128,34 @@ const BUILD = {
     b.frustum(-24, 31, 8, 8, 30, 31.5, 8, '#c9bb9b');
     b.frustum(-24, 31, 6, 4, 31.5, 34, 8, COPPER);
   },
+  rangedguild(b) {
+    // round stone guild tower with a conical roof
+    b.frustum(-12, -6, 9, 9, 0, 11, 8, '#8c8270', true);
+    b.frustum(-12, -6, 9.6, 9.6, 11, 12, 8, '#7a7060');
+    for (let i = 0; i < 16; i += 2) {
+      const a = i / 16 * Math.PI * 2, x = -12 + Math.cos(a) * 9.2, z = -6 + Math.sin(a) * 9.2;
+      b.box(x - 0.8, x + 0.8, z - 0.8, z + 0.8, 12, 13.2, '#7a7060', '#7a7060', false);
+    }
+    b.frustum(-12, -6, 8.6, 0.01, 12, 22, 8, '#7a3a28');
+    b.box(-13.5, -10.5, 2.4, 3.2, 0, 3.4, '#4a3018', '#4a3018', false); // door
+    // archery range: grass, targets on stands, shooting line
+    b.box(1, 24, -21, 7, 0.02, 0.06, '#5e7a22', '#5e7a22', false);
+    b.box(1, 24, 4, 4.4, 0.06, 0.1, '#e8e2d0', '#e8e2d0', false);
+    for (const x of [5, 10.5, 16, 21.5]) {
+      b.box(x - 1.4, x - 1.1, -19, -18.7, 0, 2.4, '#5a3e22', '#5a3e22', false);
+      b.box(x + 1.1, x + 1.4, -19, -18.7, 0, 2.4, '#5a3e22', '#5a3e22', false);
+      b.frustum(x, -18.6, 1.45, 1.45, 0.4, 0.7, 8, '#c8a050');
+      const z = -18.4;
+      for (const [r, c, dz] of [[1.4, '#d8c890', 0], [1.15, '#111111', 0.02], [0.9, '#2050c0', 0.04], [0.62, '#d02020', 0.06], [0.32, '#f2d040', 0.08]]) b.disc(x, 1.7, z + dz, r, 12, c);
+    }
+    // wooden fence round the grounds, open at the front
+    const post = (x, z) => b.box(x - 0.12, x + 0.12, z - 0.12, z + 0.12, 0, 1.3, '#6a4a2a', '#6a4a2a', false);
+    for (let x = -25; x <= 25; x += 2.5) { post(x, -22); }
+    for (let z = -22; z <= 22; z += 2.5) { post(-25, z); post(25, z); }
+    b.box(-25, 25, -22.05, -21.95, 0.9, 1.05, '#7a5a34', '#7a5a34', false);
+    b.box(-25.05, -24.95, -22, 22, 0.9, 1.05, '#7a5a34', '#7a5a34', false);
+    b.box(24.95, 25.05, -22, 22, 0.9, 1.05, '#7a5a34', '#7a5a34', false);
+  },
   oudekerk(b) {
     b.box(-30, 40, -23, 23, 0, 11, OLDBRICK, SLATE); // aisles and side chapels
     b.gable(-30, 40, -23, -7, 11, 7, SLATE, OLDBRICK);
@@ -142,6 +178,59 @@ const BUILD = {
     b.frustum(-35.5, 0, 0.2, 0.2, 66, 67.5, 4, GOLD);
   },
 };
+
+// Fence along a polyline: posts every 2.5 m and two plank rails.
+function fence(b, pts, closed, color = '#d6cdb6', post = '#9a8a6a') {
+  const n = closed ? pts.length : pts.length - 1;
+  for (let i = 0; i < n; i++) {
+    const a = pts[i], c = pts[(i + 1) % pts.length];
+    const len = Math.hypot(c[0] - a[0], c[1] - a[1]);
+    for (let t = 0; t < len; t += 2.5) {
+      const x = a[0] + (c[0] - a[0]) * t / len, z = a[1] + (c[1] - a[1]) * t / len;
+      b.box(x - 0.09, x + 0.09, z - 0.09, z + 0.09, 0, 1.25, post, post, false);
+    }
+    for (const [y0, y1] of [[0.5, 0.62], [1.0, 1.12]]) b.quad([a[0], y0, a[1]], [c[0], y0, c[1]], [c[0], y1, c[1]], [a[0], y1, a[1]], color);
+  }
+}
+
+function palm(b, x, z) {
+  b.frustum(x, z, 0.28, 0.16, 0, 5.5, 5, '#7a5a34');
+  for (let i = 0; i < 7; i++) {
+    const a = i / 7 * Math.PI * 2, dx = Math.cos(a), dz = Math.sin(a);
+    b.tri([x, 5.6, z], [x + dx * 2.8 - dz * 0.5, 4.4, z + dz * 2.8 + dx * 0.5], [x + dx * 2.8 + dz * 0.5, 4.4, z + dz * 2.8 - dx * 0.5], i % 2 ? '#3d7a22' : '#4e8a2a');
+  }
+}
+
+export function buildZoo(scene) {
+  const b = new Builder();
+  for (const e of ENCLOSURES) {
+    fence(b, e.world, true);
+    for (const [x, z] of e.palms || []) palm(b, x + ZOO_CENTER.x, z + ZOO_CENTER.z);
+    if (e.ground === 'snow') for (const [dx, dz] of [[3, -10], [-4, -4]]) b.frustum(e.cx + dx, e.cz + dz, 2.2, 0.6, 0, 1.6, 6, '#eef2f5'); // ice rocks
+    if (e.ground === 'sand' || e.ground === 'dirt') b.frustum(e.cx + 3, e.cz - 2, 1.6, 0.8, 0, 1.1, 5, '#8a8274'); // a rock to sit on
+  }
+  // outer fence with a gap for the gate on the west side
+  const [x0, x1, z0, z1] = ZOO_BOUNDS_WORLD;
+  const gz = ZOO_ENTRANCE.z + ZOO_CENTER.z;
+  fence(b, [[x0, gz + 4], [x0, z1], [x1, z1], [x1, z0], [x0, z0], [x0, gz - 4]], false, '#3a3a3a', '#2a2a2a');
+  // gate: two brick pillars and a lintel with the ARTIS sign
+  for (const dz of [-4.5, 3.5]) b.box(x0 - 0.8, x0 + 0.8, gz + dz, gz + dz + 1, 0, 6, '#7a3f2b', '#c9bb9b');
+  b.box(x0 - 0.5, x0 + 0.5, gz - 4.5, gz + 4.5, 5, 6.2, '#c9bb9b', '#c9bb9b', false);
+  const mesh = new THREE.Mesh(b.geometry(), new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide }));
+  scene.add(mesh);
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 64;
+  const g = c.getContext('2d');
+  g.fillStyle = '#1e3a20'; g.fillRect(0, 0, 256, 64);
+  g.fillStyle = '#f2d040'; g.font = 'bold 44px Georgia, serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('ARTIS', 128, 34);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(6, 1.5), new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide }));
+  sign.position.set(x0 - 0.55, 5.6, gz);
+  sign.rotation.y = -Math.PI / 2;
+  scene.add(sign);
+}
 
 // The "de Bijenkorf" lettering on the facades.
 function signTexture() {

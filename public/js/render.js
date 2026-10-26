@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { World } from './world.js';
 import { buildModel, disposeModel, animate } from './model.js';
 import { iconCanvas } from './icons.js';
-import { buildLandmarks } from './landmarks.js';
+import { buildLandmarks, buildZoo } from './landmarks.js';
 
 const TICK = 600;
 
@@ -25,6 +25,8 @@ export class Renderer {
     this.scene.add(sun);
     this.world = new World(this.scene);
     this.scenery = buildLandmarks(this.scene);
+    buildZoo(this.scene);
+    this.projectiles = [];
     this.lookAt = null; // optional {x, z} to aim the camera somewhere other than the player
     this.yaw = 0; this.pitch = 0.9; this.dist = 19;
     this.focus = new THREE.Vector3();
@@ -127,9 +129,19 @@ export class Renderer {
     ent.say = text; ent.sayUntil = performance.now() + 4000;
   }
 
-  hit(id, dmg, hp, mhp) {
+  hit(id, dmg, hp, mhp, from, proj) {
     const ent = this.ents.get('p' + id);
     if (!ent) return;
+    const src = from && this.ents.get('p' + from);
+    if (proj && src) {
+      // arrows and spells fly to the target; the splat shows when they land
+      const mesh = proj.kind === 'arrow'
+        ? new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.7), new THREE.MeshBasicMaterial({ color: '#7a5030' }))
+        : new THREE.Mesh(new THREE.IcosahedronGeometry(0.22, 0), new THREE.MeshBasicMaterial({ color: proj.color, transparent: true, opacity: 0.9 }));
+      this.scene.add(mesh);
+      this.projectiles.push({ mesh, src, dst: ent, t0: performance.now(), dur: 500, done: () => this.hit(id, dmg, hp, mhp) });
+      return;
+    }
     const el = document.createElement('div');
     el.className = 'splat' + (dmg ? '' : ' miss');
     el.style.backgroundImage = `url(${iconCanvas(dmg ? 'splat' : 'splat_miss').url})`;
@@ -205,6 +217,17 @@ export class Renderer {
       this.focus.lerp(new THREE.Vector3(g.x, 1, g.z), 0.35);
       this.world.update(g.x, g.z);
     }
+    this.projectiles = this.projectiles.filter(pr => {
+      const k = Math.min(1, (now - pr.t0) / pr.dur);
+      const a = pr.src.model.group.position, b = pr.dst.model.group.position;
+      pr.mesh.position.set(a.x + (b.x - a.x) * k, 1.4 + Math.sin(k * Math.PI) * 1.2, a.z + (b.z - a.z) * k);
+      pr.mesh.lookAt(b.x, 1.2, b.z);
+      pr.mesh.rotation.z += 0.3;
+      if (k < 1) return true;
+      this.scene.remove(pr.mesh); pr.mesh.geometry.dispose(); pr.mesh.material.dispose();
+      pr.done();
+      return false;
+    });
     const cp = Math.cos(this.pitch);
     this.camera.position.set(this.focus.x + Math.sin(this.yaw) * cp * this.dist, this.focus.y + Math.sin(this.pitch) * this.dist, this.focus.z + Math.cos(this.yaw) * cp * this.dist);
     this.camera.lookAt(this.focus);

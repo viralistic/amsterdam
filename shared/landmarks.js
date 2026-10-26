@@ -9,6 +9,8 @@ export const LANDMARK_MODELS = [
   { id: 'monument', name: 'Nationaal Monument', ex: 'A 22 metre pillar of travertine, remembering the Second World War.', lat: 52.3728, lon: 4.89365, w: 24, d: 18, rot: facing(288) },
   { id: 'nieuwekerk', name: 'Nieuwe Kerk', ex: 'The "new" church. Built around 1400, which is new by Amsterdam standards.', lat: 52.37385, lon: 4.8915, w: 78, d: 30, rot: facing(188) },
   { id: 'bijenkorf', name: 'De Bijenkorf', ex: 'The beehive. A department store on the Dam since 1914.', lat: 52.37356, lon: 4.89447, w: 55, d: 70, rot: facing(198) },
+  // Ranged guild at Club Kaliber, Jordaan. Only the tower is solid; the courtyard and target range are walkable.
+  { id: 'rangedguild', name: 'Kaliber Ranged Guild', ex: 'The finest archers in the Jordaan train here.', lat: 52.3765, lon: 4.8830, w: 50, d: 44, rot: facing(180), solid: [-21, -3, -15, 3] },
   { id: 'oudekerk', name: 'Oude Kerk', ex: "Amsterdam's oldest building, consecrated in 1306. Its tower is 67 metres tall.", lat: 52.37412, lon: 4.89804, w: 82, d: 46, rot: facing(168) },
 ].map(l => {
   const t = toTile(l.lat, l.lon);
@@ -16,7 +18,12 @@ export const LANDMARK_MODELS = [
   // local (x, z) -> world, matching THREE's rotation.y
   const toWorld = (lx, lz) => [t.x + lx * c + lz * s, t.z - lx * s + lz * c];
   const hw = l.w / 2, hd = l.d / 2;
-  return { ...l, x: t.x, z: t.z, footprint: [toWorld(-hw, -hd), toWorld(hw, -hd), toWorld(hw, hd), toWorld(-hw, hd)] };
+  const [sx0, sx1, sz0, sz1] = l.solid || [-hw, hw, -hd, hd];
+  return {
+    ...l, x: t.x, z: t.z,
+    footprint: [toWorld(-hw, -hd), toWorld(hw, -hd), toWorld(hw, hd), toWorld(-hw, hd)],
+    solidPoly: [toWorld(sx0, sz0), toWorld(sx1, sz0), toWorld(sx1, sz1), toWorld(sx0, sz1)],
+  };
 });
 
 export function insideLandmark(x, z, margin = 0) {

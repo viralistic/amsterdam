@@ -4,6 +4,8 @@ import { iconImg } from './icons.js';
 import { ITEMS, EQUIP_SLOTS, SKILLS, SKILL_ICON, levelForXp, xpForLevel, combatLevel, fmtQty } from '/shared/items.js';
 import { SKIN, HAIR, CLOTH, DEFAULT_LOOK } from '/shared/look.js';
 import { toLatLon, CHUNK } from '/shared/geo.js';
+import { ENCLOSURES } from '/shared/zoo.js';
+import { LANDMARK_MODELS } from '/shared/landmarks.js';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -129,7 +131,7 @@ function enterGame(m) {
 function onTick(m) {
   Object.assign(S, { x: m.you.x, z: m.you.z, hp: m.you.hp, mhp: m.you.mhp, en: m.you.en, run: m.you.run, real: m.you.real, ents: m.e, items: m.gi });
   renderer.applyTick(m.e, m.gi, S.id);
-  for (const h of m.h) renderer.hit(h.id, h.d, h.hp, h.mhp);
+  for (const h of m.h) renderer.hit(h.id, h.d, h.hp, h.mhp, h.from, h.proj);
   drawOrbs();
 }
 
@@ -250,7 +252,7 @@ function optionsAt(sx, sy) {
       if (e.talk) pre.push({ label: 'Talk-to', target: t, fn: (x, y) => act('npc', e, 'talk', 1, x, y) });
       if (e.shop) pre.push({ label: 'Trade', target: t, fn: (x, y) => act('npc', e, 'trade', 1, x, y) });
       if (e.bank) pre.push({ label: 'Bank', target: t, fn: (x, y) => act('npc', e, 'bank', 1, x, y) });
-      ex.push({ label: 'Examine', target: t, fn: () => chat(NPC_EXAMINE[e.n] || 'A local.') });
+      ex.push({ label: 'Examine', target: t, fn: () => chat(NPC_EXAMINE[e.n] || e.ex || 'A local.') });
     } else if (h.kind === 'scenery') {
       ex.push({ label: 'Examine', target: `<span class="c-npc" style="color:#00ffff">${esc(h.name)}</span>`, fn: () => chat(h.ex) });
     } else if (h.kind === 'ground') {
@@ -409,7 +411,7 @@ function invOptions(i) {
   if (S.iface === 'trade' && S.trade?.stage === 1) return [...[1, 5, 10].map(n => ({ label: n === 1 ? 'Offer' : 'Offer-' + n, target: t, fn: () => send({ t: 'trade', op: 'offer', slot: i, qty: n }) })), { label: 'Offer-All', target: t, fn: () => send({ t: 'trade', op: 'offer', slot: i, qty: 1e9 }) }, ex];
   const o = [];
   if (def.heal) o.push({ label: 'Eat', target: t, fn: () => send({ t: 'inv', op: 'eat', slot: i }) });
-  if (def.slot) o.push({ label: def.slot === 'weapon' || def.slot === 'shield' ? 'Wield' : 'Wear', target: t, fn: () => send({ t: 'inv', op: 'wield', slot: i }) });
+  if (def.slot) o.push({ label: ['weapon', 'shield', 'ammo'].includes(def.slot) ? 'Wield' : 'Wear', target: t, fn: () => send({ t: 'inv', op: 'wield', slot: i }) });
   o.push({ label: 'Use', target: t, fn: () => chat('Nothing interesting happens.') });
   o.push({ label: 'Drop', target: t, fn: () => send({ t: 'inv', op: 'drop', slot: i }) });
   o.push(ex);
@@ -438,7 +440,7 @@ function drawSkills() {
   }).join('') + `</div><div class="total">Total level: ${total}<br>Combat level: ${combatLevel(lv)}</div><p class="note">Exploring xp is earned by walking around Amsterdam in real-life mode and discovering landmarks.</p>`;
 }
 
-const EQUIP_GRID = [null, 'head', null, 'cape', null, null, 'weapon', 'body', 'shield', null, 'legs', null, null, 'feet', null];
+const EQUIP_GRID = [null, 'head', null, 'cape', null, 'ammo', 'weapon', 'body', 'shield', null, 'legs', null, null, 'feet', null];
 function drawEquip() {
   const el = $('#tab-equip');
   el.innerHTML = '<div class="equip"></div><div class="bonus"></div>';
@@ -455,9 +457,9 @@ function drawEquip() {
     });
     grid.appendChild(d);
   }
-  const b = { att: 0, str: 0, def: 0 };
+  const b = { att: 0, str: 0, def: 0, rng: 0, rstr: 0, mag: 0 };
   for (const s of EQUIP_SLOTS) if (S.equip[s]) for (const k in b) b[k] += ITEMS[S.equip[s].id][k] || 0;
-  el.lastChild.innerHTML = `Attack bonus: +${b.att}<br>Strength bonus: +${b.str}<br>Defence bonus: +${b.def}`;
+  el.lastChild.innerHTML = `Attack: +${b.att} &nbsp; Strength: +${b.str}<br>Ranged: +${b.rng} &nbsp; Ranged str: +${b.rstr}<br>Magic: +${b.mag} &nbsp; Defence: +${b.def}`;
 }
 
 let installPrompt = null;
@@ -516,6 +518,17 @@ function drawMinimap() {
   for (const e of S.ents) if (e.k === 'n') dot(e.x, e.z, '#ffff00');
   for (const e of S.ents) if (e.k === 'p' && e.id !== S.id) dot(e.x, e.z, e.g ? '#9fd0ff' : '#ffffff');
   mg.fillStyle = '#fff'; mg.fillRect(c - 3, c - 3, 6, 6);
+  // map labels for the zoo enclosures and guilds, like the old world map
+  mg.font = 'bold 15px Georgia, serif'; mg.textAlign = 'center'; mg.textBaseline = 'middle';
+  const label = (x, z, text) => {
+    const dx = (x - fx) * MS, dz = (z - fz) * MS;
+    if (Math.hypot(dx, dz) > c - 12) return;
+    const sx = c + dx * cos - dz * sin, sy = c + dx * sin + dz * cos;
+    mg.fillStyle = '#000'; mg.fillText(text, sx + 1.5, sy + 1.5);
+    mg.fillStyle = '#fff'; mg.fillText(text, sx, sy);
+  };
+  for (const e of ENCLOSURES) label(e.cx, e.cz, e.name);
+  for (const l of LANDMARK_MODELS) if (l.id === 'rangedguild') label(l.x, l.z, 'Ranged Guild');
 }
 mini.addEventListener('click', e => {
   const r = mini.getBoundingClientRect();

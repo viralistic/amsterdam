@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { CHUNK } from '/shared/geo.js';
 import { LANDMARK_MODELS, insideLandmark } from '/shared/landmarks.js';
+import { ENCLOSURES, PATHS_WORLD, ZOO_BOUNDS_WORLD, GROUND, insideZoo } from '/shared/zoo.js';
 
 const PX = 2; // ground texture pixels per metre
 const COLORS = {
@@ -81,8 +82,8 @@ export class World {
   build(c, d) {
     const x0 = c.cx * CHUNK, z0 = c.cz * CHUNK;
     // hand-built landmarks replace whatever OpenStreetMap has at their spot
-    d = { ...d, b: d.b.filter(([, , r]) => { let sx = 0, sz = 0; const n = r.length / 2 - 1; for (let i = 0; i < n * 2; i += 2) { sx += r[i]; sz += r[i + 1]; } return !insideLandmark(sx / n + x0, sz / n + z0, 8); }) };
-    const marks = LANDMARK_MODELS.map(l => l.footprint.flatMap(([x, z]) => [x - x0, z - z0]));
+    d = { ...d, b: d.b.filter(([, , r]) => { let sx = 0, sz = 0; const n = r.length / 2 - 1; for (let i = 0; i < n * 2; i += 2) { sx += r[i]; sz += r[i + 1]; } return !insideLandmark(sx / n + x0, sz / n + z0, 8) && !insideZoo(sx / n + x0, sz / n + z0); }) };
+    const marks = LANDMARK_MODELS.map(l => l.solidPoly.flatMap(([x, z]) => [x - x0, z - z0]));
     // --- ground texture
     const cv = document.createElement('canvas');
     cv.width = cv.height = CHUNK * PX;
@@ -113,6 +114,7 @@ export class World {
     }
     g.fillStyle = COLORS.footprint;
     for (const [, , r] of d.b) { g.beginPath(); ringPath(g, r); g.fill(); }
+    drawZoo(g, x0, z0);
     tileNoise(g, cv.width, x0, z0);
     const tex = new THREE.CanvasTexture(cv);
     tex.colorSpace = THREE.SRGBColorSpace;
@@ -137,6 +139,11 @@ export class World {
     k.fillStyle = '#000';
     for (const [, , r] of d.b) { k.beginPath(); ringPath(k, r); k.fill(); }
     for (const r of marks) { k.beginPath(); ringPath(k, r); k.fill(); }
+    // zoo: the grounds are walkable, the enclosures are not
+    const [zx0, zx1, zz0, zz1] = ZOO_BOUNDS_WORLD;
+    k.fillStyle = '#fff'; k.fillRect(zx0 - x0, zz0 - z0, zx1 - zx0, zz1 - zz0);
+    k.fillStyle = '#000';
+    for (const e of ENCLOSURES) { k.beginPath(); ringPath(k, e.world.flatMap(([x, z]) => [x - x0, z - z0])); k.fill(); }
     k.strokeStyle = '#fff';
     for (const [kind, , passage, co] of d.r) if (passage) { k.lineWidth = Math.max(2, ROAD_W[kind] || 3); linePath(k, co); k.stroke(); }
     const px = k.getImageData(0, 0, CHUNK, CHUNK).data;
@@ -339,6 +346,24 @@ function gableBox(pts) {
   // corner(fu, fv) with fu, fv in [0, 1] across the rectangle
   const corner = (fu, fv) => { const u = mnu + fu * lu, v = mnv + fv * lv; return [u * ux - v * uy, u * uy + v * ux]; };
   return { corner, along: lu >= lv ? 'u' : 'v', short };
+}
+
+// Artis in old-school zoo-map style: grass grounds, dirt walkways ringing each enclosure, themed enclosure floors.
+function drawZoo(g, x0, z0) {
+  const [zx0, zx1, zz0, zz1] = ZOO_BOUNDS_WORLD;
+  if (zx1 < x0 || zx0 > x0 + CHUNK || zz1 < z0 || zz0 > z0 + CHUNK) return;
+  const loc = pts => pts.flatMap(([x, z]) => [x - x0, z - z0]);
+  g.fillStyle = '#5e7a22'; g.fillRect(zx0 - x0, zz0 - z0, zx1 - zx0, zz1 - zz0);
+  g.strokeStyle = '#7a6440'; g.lineCap = 'round'; g.lineJoin = 'round';
+  g.lineWidth = 7;
+  for (const e of ENCLOSURES) { g.beginPath(); ringPath(g, loc(e.world)); g.stroke(); }
+  g.lineWidth = 5;
+  for (const p of PATHS_WORLD) { linePath(g, loc(p)); g.stroke(); }
+  for (const e of ENCLOSURES) {
+    g.fillStyle = GROUND[e.ground];
+    g.beginPath(); ringPath(g, loc(e.world)); g.fill();
+    if (e.pondWorld) { g.fillStyle = GROUND.water; g.beginPath(); ringPath(g, loc(e.pondWorld)); g.fill(); }
+  }
 }
 
 function ringPath(g, r) {
