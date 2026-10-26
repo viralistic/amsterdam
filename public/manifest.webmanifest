@@ -1,6 +1,6 @@
 {
-  "name": "AmsterScape",
-  "short_name": "AmsterScape",
+  "name": "AmsEscape",
+  "short_name": "AmsEscape",
   "description": "Old school MMO in real-world Amsterdam",
   "start_url": "/",
   "display": "fullscreen",

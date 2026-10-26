@@ -667,4 +667,4 @@ pane('welcome');
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 
 // Debug handle for automated tests and the browser console.
-window.__amsterscape = { S, get renderer() { return renderer; } };
+window.__amsescape = { S, get renderer() { return renderer; } };

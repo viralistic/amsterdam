@@ -1,5 +1,5 @@
 // Network-first service worker: makes the game installable and keeps the last version usable offline.
-const CACHE = 'amsterscape-v1';
+const CACHE = 'amsescape-v1';
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', e => {

@@ -1,4 +1,4 @@
-// AmsterScape server: static files, chunk API and the 600 ms game tick over WebSockets.
+// AmsEscape server: static files, chunk API and the 600 ms game tick over WebSockets.
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -697,7 +697,7 @@ async function login(ws, ip, m) {
   players.set(p.id, p); online.set(key, p);
   ws.player = p;
   send(p, { t: 'init', id: p.id, name: p.name, x: p.x, z: p.z, look: rec.look, inv: rec.inv, equip: rec.equip, xp: rec.xp, hp: rec.hp, energy: rec.energy, isNew: !!m.create });
-  msg(p, 'Welcome to AmsterScape.');
+  msg(p, 'Welcome to AmsEscape.');
   if (m.create) msg(p, 'Talk to the Gemeente Gids (right next to you) to get started.');
 }
 
@@ -806,4 +806,4 @@ function shutdown() {
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
-server.listen(PORT, () => console.log(`AmsterScape running on http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`AmsEscape running on http://localhost:${PORT}`));

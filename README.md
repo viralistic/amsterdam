@@ -1,4 +1,4 @@
-# AmsterScape
+# AmsEscape
 
 An Old School RuneScape-style MMO set in the real streets of Amsterdam. You spawn on the forecourt of **Amsterdam Centraal**, and the world is built from live OpenStreetMap data: canals, bridges, canal houses, parks, red bike lanes and trees.
 
@@ -41,8 +41,8 @@ Environment variables:
 GPS only works on **HTTPS**, so host it behind TLS. Any Node host with WebSocket support works (Fly.io, Railway, Render, a VPS with Caddy). A `Dockerfile` is included; mount a volume at `/data` so accounts survive restarts.
 
 ```bash
-docker build -t amsterscape .
-docker run -p 3000:3000 -v amsterscape-data:/data amsterscape
+docker build -t amsescape .
+docker run -p 3000:3000 -v amsescape-data:/data amsescape
 ```
 
 ## Layout

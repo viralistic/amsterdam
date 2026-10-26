@@ -63,7 +63,7 @@ node["natural"="tree"](${bb});
   let lastErr;
   for (const url of MIRRORS) {
     try {
-      const res = await fetch(url, { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'AmsterScape/0.1' }, signal: AbortSignal.timeout(90_000) });
+      const res = await fetch(url, { method: 'POST', body: 'data=' + encodeURIComponent(q), headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'AmsEscape/0.1' }, signal: AbortSignal.timeout(90_000) });
       if (!res.ok) throw new Error(`${url} ${res.status}`);
       return await res.json();
     } catch (e) { lastErr = e; }
