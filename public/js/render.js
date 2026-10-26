@@ -1,0 +1,246 @@
+// Three.js scene: OSRS-style orbit camera, interpolated entities, overhead text, hitsplats and picking.
+import * as THREE from 'three';
+import { World } from './world.js';
+import { buildModel, disposeModel } from './model.js';
+import { ITEMS } from '/shared/items.js';
+
+const TICK = 600;
+
+export class Renderer {
+  constructor(canvas, overlay) {
+    this.canvas = canvas;
+    this.overlay = overlay;
+    this.gl = new THREE.WebGLRenderer({ canvas, antialias: true });
+    this.gl.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.scene = new THREE.Scene();
+    const sky = new THREE.Color('#9db7cf');
+    this.scene.background = sky;
+    this.scene.fog = new THREE.Fog(sky, 90, 190);
+    this.camera = new THREE.PerspectiveCamera(42, 1, 0.5, 260);
+    this.scene.add(new THREE.HemisphereLight('#dfe8f0', '#5a5040', 1.6));
+    const sun = new THREE.DirectionalLight('#fff4e0', 1.6);
+    sun.position.set(-40, 80, 30);
+    this.scene.add(sun);
+    this.world = new World(this.scene);
+    this.yaw = 0; this.pitch = 0.9; this.dist = 19;
+    this.focus = new THREE.Vector3();
+    this.ents = new Map(); // "p12" -> entity
+    this.items = new Map();
+    this.itemTex = new Map();
+    this.myKey = null;
+    this.lastTick = performance.now();
+    this.raycaster = new THREE.Raycaster();
+    this.marker = null;
+    window.addEventListener('resize', () => this.resize());
+    this.resize();
+  }
+
+  resize() {
+    const w = this.canvas.clientWidth, h = this.canvas.clientHeight;
+    this.gl.setSize(w, h, false);
+    this.camera.aspect = w / h;
+    this.camera.updateProjectionMatrix();
+  }
+
+  // ---- entities
+  applyTick(ents, items, myId) {
+    this.lastTick = performance.now();
+    this.myKey = 'p' + myId;
+    const seen = new Set();
+    for (const e of ents) {
+      const key = e.k + e.id;
+      seen.add(key);
+      let ent = this.ents.get(key);
+      const sig = JSON.stringify([e.l, e.eq, e.g, e.m]);
+      if (!ent) {
+        ent = { key, data: e, from: { x: e.x, z: e.z }, to: { x: e.x, z: e.z }, rot: 0, walk: 0, dom: null, splats: [], hpUntil: 0 };
+        this.ents.set(key, ent);
+      } else {
+        const cur = this.entPos(ent, 1);
+        ent.from = cur;
+        ent.to = { x: e.x, z: e.z };
+        if (Math.abs(cur.x - e.x) > 30 || Math.abs(cur.z - e.z) > 30) ent.from = { x: e.x, z: e.z };
+      }
+      if (ent.sig !== sig) {
+        if (ent.model) { this.scene.remove(ent.model.group); disposeModel(ent.model); }
+        ent.model = buildModel(e);
+        ent.model.hit.userData.pick = { kind: e.k === 'p' ? 'player' : 'npc', key };
+        this.scene.add(ent.model.group);
+        ent.sig = sig;
+      }
+      ent.data = e;
+      if (e.k === 'p') { ent.hp = e.hp; ent.mhp = e.mhp; }
+    }
+    for (const [key, ent] of this.ents) if (!seen.has(key)) this.removeEnt(key, ent);
+
+    const seenI = new Set();
+    for (const it of items) {
+      seenI.add(it.id);
+      let s = this.items.get(it.id);
+      if (!s) {
+        s = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.iconTexture(it.i), depthWrite: false }));
+        s.scale.set(0.9, 0.9, 1);
+        s.position.set(it.x + 0.5, 0.45, it.z + 0.5);
+        s.userData.pick = { kind: 'ground', id: it.id };
+        this.scene.add(s);
+        this.items.set(it.id, s);
+      }
+      s.userData.data = it;
+    }
+    for (const [id, s] of this.items) if (!seenI.has(id)) { this.scene.remove(s); s.material.dispose(); this.items.delete(id); }
+  }
+
+  removeEnt(key, ent) {
+    if (ent.model) { this.scene.remove(ent.model.group); disposeModel(ent.model); }
+    ent.dom?.remove();
+    for (const s of ent.splats) s.el.remove();
+    this.ents.delete(key);
+  }
+
+  clear() {
+    for (const [key, ent] of this.ents) this.removeEnt(key, ent);
+    for (const [, s] of this.items) this.scene.remove(s);
+    this.items.clear();
+  }
+
+  iconTexture(id) {
+    if (!this.itemTex.has(id)) {
+      const c = document.createElement('canvas');
+      c.width = c.height = 64;
+      const g = c.getContext('2d');
+      g.font = '48px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(ITEMS[id]?.icon || '?', 32, 36);
+      const t = new THREE.CanvasTexture(c);
+      t.colorSpace = THREE.SRGBColorSpace;
+      this.itemTex.set(id, t);
+    }
+    return this.itemTex.get(id);
+  }
+
+  entPos(ent, t) {
+    return { x: ent.from.x + (ent.to.x - ent.from.x) * t, z: ent.from.z + (ent.to.z - ent.from.z) * t };
+  }
+
+  say(kind, id, text) {
+    const ent = this.ents.get(kind + id);
+    if (!ent) return;
+    ent.say = text; ent.sayUntil = performance.now() + 4000;
+  }
+
+  hit(id, dmg, hp, mhp) {
+    const ent = this.ents.get('p' + id);
+    if (!ent) return;
+    const el = document.createElement('div');
+    el.className = 'splat' + (dmg ? '' : ' miss');
+    el.textContent = dmg;
+    this.overlay.appendChild(el);
+    ent.splats.push({ el, until: performance.now() + 1100 });
+    ent.hp = hp; ent.mhp = mhp; ent.hpUntil = performance.now() + 6000;
+  }
+
+  showMarker(x, y, red) {
+    const el = document.createElement('div');
+    el.className = 'clickmark' + (red ? ' red' : '');
+    el.style.left = x + 'px'; el.style.top = y + 'px';
+    this.overlay.appendChild(el);
+    setTimeout(() => el.remove(), 400);
+  }
+
+  // ---- picking
+  pick(sx, sy) {
+    const r = this.canvas.getBoundingClientRect();
+    const ndc = new THREE.Vector2(((sx - r.left) / r.width) * 2 - 1, -((sy - r.top) / r.height) * 2 + 1);
+    this.raycaster.setFromCamera(ndc, this.camera);
+    const objs = [];
+    for (const e of this.ents.values()) if (e.model) objs.push(e.model.hit);
+    for (const s of this.items.values()) objs.push(s);
+    const hits = [];
+    const seen = new Set();
+    for (const h of this.raycaster.intersectObjects(objs, false)) {
+      const p = h.object.userData.pick;
+      const id = p.key || 'g' + p.id;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      if (p.kind === 'ground') hits.push({ kind: 'ground', item: h.object.userData.data });
+      else hits.push({ kind: p.kind, ent: this.ents.get(p.key).data });
+    }
+    // stacked ground items on the clicked tile
+    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const pt = new THREE.Vector3();
+    let tile = null;
+    if (this.raycaster.ray.intersectPlane(plane, pt)) {
+      tile = { x: Math.floor(pt.x), z: Math.floor(pt.z) };
+      for (const s of this.items.values()) {
+        const d = s.userData.data;
+        if (d.x === tile.x && d.z === tile.z && !seen.has('g' + d.id)) { seen.add('g' + d.id); hits.push({ kind: 'ground', item: d }); }
+      }
+    }
+    return { hits, tile };
+  }
+
+  // ---- frame
+  frame(now) {
+    const t = Math.min(1, (now - this.lastTick) / TICK);
+    const me = this.ents.get(this.myKey);
+    for (const ent of this.ents.values()) {
+      const p = this.entPos(ent, t);
+      const g = ent.model.group;
+      g.position.set(p.x + 0.5, 0, p.z + 0.5);
+      const dx = ent.to.x - ent.from.x, dz = ent.to.z - ent.from.z;
+      const moving = (dx || dz) && t < 1;
+      if (dx || dz) ent.rot = Math.atan2(dx, dz);
+      let dr = ent.rot - g.rotation.y;
+      dr = Math.atan2(Math.sin(dr), Math.cos(dr));
+      g.rotation.y += dr * 0.25;
+      ent.walk = moving ? ent.walk + 0.25 * Math.max(1, Math.hypot(dx, dz)) : ent.walk * 0.8;
+      const sw = moving ? Math.sin(ent.walk) * 0.6 : 0;
+      const parts = ent.model.parts;
+      if (parts.legL) { parts.legL.rotation.x = sw; parts.legR.rotation.x = -sw; parts.armL.rotation.x = -sw * 0.8; parts.armR.rotation.x = sw * 0.8; }
+      if (ent.data.g) g.position.y = 0.15 + Math.sin(now / 400 + ent.data.id) * 0.08;
+    }
+    if (me) {
+      const g = me.model.group.position;
+      this.focus.lerp(new THREE.Vector3(g.x, 1, g.z), 0.35);
+      this.world.update(g.x, g.z);
+    }
+    const cp = Math.cos(this.pitch);
+    this.camera.position.set(this.focus.x + Math.sin(this.yaw) * cp * this.dist, this.focus.y + Math.sin(this.pitch) * this.dist, this.focus.z + Math.cos(this.yaw) * cp * this.dist);
+    this.camera.lookAt(this.focus);
+    for (const s of this.items.values()) s.position.y = 0.45 + Math.sin(now / 500 + s.userData.data.id) * 0.06;
+    this.gl.render(this.scene, this.camera);
+    this.drawOverlays(now);
+  }
+
+  project(x, y, z) {
+    const v = new THREE.Vector3(x, y, z).project(this.camera);
+    if (v.z > 1) return null;
+    return { x: (v.x + 1) / 2 * this.canvas.clientWidth, y: (1 - v.y) / 2 * this.canvas.clientHeight };
+  }
+
+  drawOverlays(now) {
+    for (const ent of this.ents.values()) {
+      const g = ent.model.group.position;
+      const top = this.project(g.x, ent.model.height + 0.35, g.z);
+      const talking = ent.say && ent.sayUntil > now;
+      const showHp = ent.hpUntil > now;
+      if (!top || (!talking && !showHp && !ent.splats.length)) { if (ent.dom) ent.dom.style.display = 'none'; continue; }
+      if (!ent.dom) {
+        ent.dom = document.createElement('div');
+        ent.dom.className = 'overhead';
+        ent.dom.innerHTML = '<div class="say"></div><div class="hpbar"><div></div></div>';
+        this.overlay.appendChild(ent.dom);
+      }
+      ent.dom.style.display = '';
+      ent.dom.style.transform = `translate(${top.x}px, ${top.y}px)`;
+      const sayEl = ent.dom.firstChild;
+      sayEl.textContent = talking ? ent.say : '';
+      const bar = ent.dom.lastChild;
+      bar.style.display = showHp ? '' : 'none';
+      if (showHp) bar.firstChild.style.width = Math.max(0, ent.hp / ent.mhp * 100) + '%';
+      const mid = this.project(g.x, ent.model.height * 0.55, g.z);
+      ent.splats = ent.splats.filter(s => { if (s.until < now) { s.el.remove(); return false; } return true; });
+      ent.splats.forEach((s, i) => { if (mid) s.el.style.transform = `translate(${mid.x + (i % 2 ? 14 : -14) * (i > 0)}px, ${mid.y - i * 10}px)`; });
+    }
+  }
+}

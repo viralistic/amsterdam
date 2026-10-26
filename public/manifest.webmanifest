@@ -1,0 +1,11 @@
+{
+  "name": "AmsterScape",
+  "short_name": "AmsterScape",
+  "description": "Old school MMO in real-world Amsterdam",
+  "start_url": "/",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#120d07",
+  "theme_color": "#2b2418",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

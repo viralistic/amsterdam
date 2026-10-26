@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>AmsterScape</title>
+<meta name="description" content="Old school MMO in real-world Amsterdam. Start at Centraal Station.">
+<meta name="theme-color" content="#2b2418">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg">
+<link rel="apple-touch-icon" href="/icon.svg">
+<link rel="stylesheet" href="/style.css">
+<script type="importmap">{ "imports": { "three": "/vendor/three/three.module.js", "three/addons/": "/vendor/three-addons/" } }</script>
+</head>
+<body>
+
+<div id="login" class="screen">
+  <div class="torch l"></div><div class="torch r"></div>
+  <div class="logo">AmsterScape<small>Old School Amsterdam</small></div>
+  <div class="loginbox">
+    <div class="pane" id="pane-welcome">
+      <p class="yellow">Welcome to AmsterScape</p>
+      <div class="row"><button class="stone" data-go="create">New User</button><button class="stone" data-go="existing">Existing User</button></div>
+    </div>
+    <form class="pane" id="pane-existing" hidden>
+      <p class="yellow">Enter your username &amp; password.</p>
+      <label>Login: <input name="name" maxlength="12" autocomplete="username" autocapitalize="off"></label>
+      <label>Password: <input name="pass" type="password" maxlength="64" autocomplete="current-password"></label>
+      <div class="row"><button class="stone" type="submit">Login</button><button class="stone" type="button" data-go="welcome">Cancel</button></div>
+    </form>
+    <form class="pane" id="pane-create" hidden>
+      <p class="yellow">Choose a username &amp; password.</p>
+      <label>Username: <input name="name" maxlength="12" autocomplete="username" autocapitalize="off"></label>
+      <label>Password: <input name="pass" type="password" maxlength="64" autocomplete="new-password"></label>
+      <div class="row"><button class="stone" type="submit">Next</button><button class="stone" type="button" data-go="welcome">Cancel</button></div>
+    </form>
+    <div class="pane" id="pane-design" hidden>
+      <p class="yellow">Design your character</p>
+      <div class="designer">
+        <div class="opts" id="design-opts"></div>
+        <canvas id="preview" width="120" height="170"></canvas>
+      </div>
+      <div class="row"><button class="stone" id="design-accept">Accept</button><button class="stone" data-go="create">Back</button></div>
+    </div>
+    <p id="login-msg" class="msg"></p>
+  </div>
+  <p class="foot">Map data © OpenStreetMap contributors. A fan tribute; not affiliated with Jagex.</p>
+</div>
+
+<div id="game" hidden>
+  <canvas id="view"></canvas>
+  <div id="overlay"></div>
+  <div id="hovertext"></div>
+
+  <div id="hud-top">
+    <div id="minimap-wrap">
+      <canvas id="minimap" width="304" height="304"></canvas>
+      <button id="compass" title="Face north">N</button>
+      <button class="orb" id="orb-hp" title="Hitpoints"><span class="ic">❤️</span><b>10</b></button>
+      <button class="orb" id="orb-run" title="Toggle run"><span class="ic">👟</span><b>100</b></button>
+      <button class="orb" id="orb-real" title="Real-life mode"><span class="ic">👻</span><b>Ghost</b></button>
+      <button class="orb" id="orb-map" title="World map"><span class="ic">🗺️</span></button>
+    </div>
+  </div>
+
+  <div id="chatbox">
+    <div id="chat-lines"></div>
+    <div id="chat-dialog" hidden></div>
+    <div id="chat-input"><span id="chat-name"></span>: <input id="chat-text" maxlength="80" autocomplete="off" enterkeyhint="send"><span class="caret">*</span></div>
+    <div id="chat-tabs"><button data-f="all" class="on">All</button><button data-f="game">Game</button><button data-f="public">Public</button><button data-f="trade">Trade</button><button id="chat-toggle" title="Hide chat">▾</button></div>
+  </div>
+
+  <div id="side">
+    <div id="side-panel">
+      <div class="tab" id="tab-skills" hidden></div>
+      <div class="tab" id="tab-inv"><div id="inv" class="grid"></div></div>
+      <div class="tab" id="tab-equip" hidden></div>
+      <div class="tab" id="tab-options" hidden></div>
+    </div>
+    <div id="side-tabs">
+      <button data-tab="skills" title="Skills">📊</button>
+      <button data-tab="inv" class="on" title="Inventory">🎒</button>
+      <button data-tab="equip" title="Worn equipment">🛡️</button>
+      <button data-tab="options" title="Settings">🔧</button>
+    </div>
+  </div>
+
+  <div id="window" hidden><div class="win-title"><span></span><button class="x">✕</button></div><div class="win-body"></div></div>
+  <div id="ctxmenu" hidden></div>
+</div>
+
+<script type="module" src="/js/main.js"></script>
+</body>
+</html>
