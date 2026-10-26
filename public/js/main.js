@@ -1,5 +1,6 @@
 import { Renderer } from './render.js';
 import { drawPreview } from './model.js';
+import { iconImg } from './icons.js';
 import { ITEMS, EQUIP_SLOTS, SKILLS, SKILL_ICON, levelForXp, xpForLevel, combatLevel, fmtQty } from '/shared/items.js';
 import { SKIN, HAIR, CLOTH, DEFAULT_LOOK } from '/shared/look.js';
 import { toLatLon, CHUNK } from '/shared/geo.js';
@@ -389,7 +390,7 @@ function slotHtml(s) {
   if (!s) return '';
   const def = ITEMS[s.id];
   const q = def.stack || s.q > 1 ? fmtQty(s.q) : null;
-  return `<span class="em">${def.icon}</span>${q ? `<span class="q" style="color:${q.color}">${q.text}</span>` : ''}`;
+  return `${iconImg(s.id)}${q ? `<span class="q" style="color:${q.color}">${q.text}</span>` : ''}`;
 }
 
 function invOptions(i) {
@@ -431,7 +432,7 @@ function drawSkills() {
   const total = SKILLS.reduce((a, s) => a + lv[s], 0);
   $('#tab-skills').innerHTML = '<div class="skills">' + SKILLS.map(s => {
     const xp = Math.floor(S.xp[s] || 0), next = lv[s] < 99 ? xpForLevel(lv[s] + 1) : null;
-    return `<div class="skill" title="${s[0].toUpperCase() + s.slice(1)} XP: ${xp.toLocaleString()}${next ? `\nNext level at: ${next.toLocaleString()}` : ''}"><span>${SKILL_ICON[s]}</span><span>${lv[s]}/${lv[s]}<span class="xp">${xp.toLocaleString()} xp</span></span></div>`;
+    return `<div class="skill" title="${s[0].toUpperCase() + s.slice(1)} XP: ${xp.toLocaleString()}${next ? `\nNext level at: ${next.toLocaleString()}` : ''}">${iconImg(SKILL_ICON[s], 'ico sk')}<span>${lv[s]}/${lv[s]}<span class="xp">${xp.toLocaleString()} xp</span></span></div>`;
   }).join('') + `</div><div class="total">Total level: ${total}<br>Combat level: ${combatLevel(lv)}</div><p class="note">Exploring xp is earned by walking around Amsterdam in real-life mode and discovering landmarks.</p>`;
 }
 
@@ -479,7 +480,7 @@ function drawOrbs() {
   $('#orb-run b').textContent = S.en;
   $('#orb-run').classList.toggle('on', S.run);
   $('#orb-real').classList.toggle('on', S.real);
-  $('#orb-real .ic').textContent = S.real ? '👁️' : '👻';
+  $('#orb-real .ic').innerHTML = iconImg(S.real ? 'eye' : 'ghost', 'ico orb-ico');
   $('#orb-real b').textContent = S.real ? 'Real' : gpsWatch !== null ? '...' : 'Ghost';
 }
 $('#orb-run').onclick = () => send({ t: 'run', on: !S.run });
@@ -663,6 +664,7 @@ function showMap() {
 }
 
 // ======================================================================= boot
+document.querySelectorAll('[data-icon]').forEach(el => { el.innerHTML = iconImg(el.dataset.icon, el.classList.contains('ic') ? 'ico orb-ico' : 'ico'); });
 pane('welcome');
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 

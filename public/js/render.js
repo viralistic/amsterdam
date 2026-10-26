@@ -1,8 +1,8 @@
 // Three.js scene: OSRS-style orbit camera, interpolated entities, overhead text, hitsplats and picking.
 import * as THREE from 'three';
 import { World } from './world.js';
-import { buildModel, disposeModel } from './model.js';
-import { ITEMS } from '/shared/items.js';
+import { buildModel, disposeModel, animate } from './model.js';
+import { iconCanvas } from './icons.js';
 
 const TICK = 600;
 
@@ -13,9 +13,10 @@ export class Renderer {
     this.gl = new THREE.WebGLRenderer({ canvas, antialias: true });
     this.gl.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.scene = new THREE.Scene();
-    const sky = new THREE.Color('#9db7cf');
+    // old-school look: the world fades into a black void at the edge of the draw distance
+    const sky = new THREE.Color('#000000');
     this.scene.background = sky;
-    this.scene.fog = new THREE.Fog(sky, 90, 190);
+    this.scene.fog = new THREE.Fog(sky, 70, 150);
     this.camera = new THREE.PerspectiveCamera(42, 1, 0.5, 260);
     this.scene.add(new THREE.HemisphereLight('#dfe8f0', '#5a5040', 1.6));
     const sun = new THREE.DirectionalLight('#fff4e0', 1.6);
@@ -79,8 +80,8 @@ export class Renderer {
       let s = this.items.get(it.id);
       if (!s) {
         s = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.iconTexture(it.i), depthWrite: false }));
-        s.scale.set(0.9, 0.9, 1);
-        s.position.set(it.x + 0.5, 0.45, it.z + 0.5);
+        s.scale.set(0.9, 0.8, 1);
+        s.position.set(it.x + 0.5, 0.4, it.z + 0.5);
         s.userData.pick = { kind: 'ground', id: it.id };
         this.scene.add(s);
         this.items.set(it.id, s);
@@ -105,14 +106,9 @@ export class Renderer {
 
   iconTexture(id) {
     if (!this.itemTex.has(id)) {
-      const c = document.createElement('canvas');
-      c.width = c.height = 64;
-      const g = c.getContext('2d');
-      g.font = '48px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
-      g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText(ITEMS[id]?.icon || '?', 32, 36);
-      const t = new THREE.CanvasTexture(c);
+      const t = new THREE.CanvasTexture(iconCanvas(id));
       t.colorSpace = THREE.SRGBColorSpace;
+      t.magFilter = THREE.NearestFilter;
       this.itemTex.set(id, t);
     }
     return this.itemTex.get(id);
@@ -133,6 +129,7 @@ export class Renderer {
     if (!ent) return;
     const el = document.createElement('div');
     el.className = 'splat' + (dmg ? '' : ' miss');
+    el.style.backgroundImage = `url(${iconCanvas(dmg ? 'splat' : 'splat_miss').url})`;
     el.textContent = dmg;
     this.overlay.appendChild(el);
     ent.splats.push({ el, until: performance.now() + 1100 });
@@ -193,10 +190,9 @@ export class Renderer {
       let dr = ent.rot - g.rotation.y;
       dr = Math.atan2(Math.sin(dr), Math.cos(dr));
       g.rotation.y += dr * 0.25;
-      ent.walk = moving ? ent.walk + 0.25 * Math.max(1, Math.hypot(dx, dz)) : ent.walk * 0.8;
-      const sw = moving ? Math.sin(ent.walk) * 0.6 : 0;
-      const parts = ent.model.parts;
-      if (parts.legL) { parts.legL.rotation.x = sw; parts.legR.rotation.x = -sw; parts.armL.rotation.x = -sw * 0.8; parts.armR.rotation.x = sw * 0.8; }
+      if (moving) ent.walk += 0.22 * Math.max(1, Math.hypot(dx, dz));
+      ent.amt = (ent.amt || 0) + ((moving ? 1 : 0) - (ent.amt || 0)) * 0.2;
+      animate(ent.model, ent.walk, ent.amt, now);
       if (ent.data.g) g.position.y = 0.15 + Math.sin(now / 400 + ent.data.id) * 0.08;
     }
     if (me) {
@@ -207,7 +203,6 @@ export class Renderer {
     const cp = Math.cos(this.pitch);
     this.camera.position.set(this.focus.x + Math.sin(this.yaw) * cp * this.dist, this.focus.y + Math.sin(this.pitch) * this.dist, this.focus.z + Math.cos(this.yaw) * cp * this.dist);
     this.camera.lookAt(this.focus);
-    for (const s of this.items.values()) s.position.y = 0.45 + Math.sin(now / 500 + s.userData.data.id) * 0.06;
     this.gl.render(this.scene, this.camera);
     this.drawOverlays(now);
   }

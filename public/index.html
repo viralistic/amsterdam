@@ -39,7 +39,7 @@
       <p class="yellow">Design your character</p>
       <div class="designer">
         <div class="opts" id="design-opts"></div>
-        <canvas id="preview" width="120" height="170"></canvas>
+        <canvas id="preview" width="140" height="190"></canvas>
       </div>
       <div class="row"><button class="stone" id="design-accept">Accept</button><button class="stone" data-go="create">Back</button></div>
     </div>
@@ -57,10 +57,10 @@
     <div id="minimap-wrap">
       <canvas id="minimap" width="304" height="304"></canvas>
       <button id="compass" title="Face north">N</button>
-      <button class="orb" id="orb-hp" title="Hitpoints"><span class="ic">❤️</span><b>10</b></button>
-      <button class="orb" id="orb-run" title="Toggle run"><span class="ic">👟</span><b>100</b></button>
-      <button class="orb" id="orb-real" title="Real-life mode"><span class="ic">👻</span><b>Ghost</b></button>
-      <button class="orb" id="orb-map" title="World map"><span class="ic">🗺️</span></button>
+      <button class="orb" id="orb-hp" title="Hitpoints"><span class="ic" data-icon="heart"></span><b>10</b></button>
+      <button class="orb" id="orb-run" title="Toggle run"><span class="ic" data-icon="boot"></span><b>100</b></button>
+      <button class="orb" id="orb-real" title="Real-life mode"><span class="ic" data-icon="ghost"></span><b>Ghost</b></button>
+      <button class="orb" id="orb-map" title="World map"><span class="ic" data-icon="globe"></span></button>
     </div>
   </div>
 
@@ -79,10 +79,10 @@
       <div class="tab" id="tab-options" hidden></div>
     </div>
     <div id="side-tabs">
-      <button data-tab="skills" title="Skills">📊</button>
-      <button data-tab="inv" class="on" title="Inventory">🎒</button>
-      <button data-tab="equip" title="Worn equipment">🛡️</button>
-      <button data-tab="options" title="Settings">🔧</button>
+      <button data-tab="skills" title="Skills" data-icon="stats"></button>
+      <button data-tab="inv" class="on" title="Inventory" data-icon="backpack"></button>
+      <button data-tab="equip" title="Worn equipment" data-icon="platebody"></button>
+      <button data-tab="options" title="Settings" data-icon="wrench"></button>
     </div>
   </div>
 

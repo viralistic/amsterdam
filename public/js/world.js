@@ -1,11 +1,12 @@
 // Turns OpenStreetMap chunks into OSRS-style terrain: flat-coloured ground texture, extruded buildings,
 // low-poly trees and a 1 m collision grid used for click-to-walk pathfinding.
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { CHUNK } from '/shared/geo.js';
 
 const PX = 2; // ground texture pixels per metre
 const COLORS = {
-  base: '#77705f', green: '#4c7a2a', water: '#3d6690', paved: '#8d8576', bridge: '#8a7a64',
+  base: '#77705f', green: '#5e7a22', water: '#3d6690', paved: '#8d8576', bridge: '#8a7a64',
   road: '#5f5d58', foot: '#9a8f7c', cycle: '#94473b', rail: '#4d4339', tram: '#3b3b3b', footprint: '#3a332b',
 };
 const ROAD_W = { motorway: 12, trunk: 11, primary: 10, secondary: 9, tertiary: 7, unclassified: 6, residential: 6, living_street: 5, service: 4, pedestrian: 5, footway: 2.5, path: 2, cycleway: 2.5, steps: 2.5, track: 3 };
@@ -19,10 +20,22 @@ export class World {
   constructor(scene) {
     this.scene = scene;
     this.chunks = new Map();
-    this.trunkGeo = new THREE.CylinderGeometry(0.2, 0.3, 2.6, 5).translate(0, 1.3, 0);
-    this.crownGeo = new THREE.IcosahedronGeometry(2, 0).translate(0, 3.8, 0);
-    this.trunkMat = new THREE.MeshLambertMaterial({ color: '#4a3220', flatShading: true });
-    this.crownMat = new THREE.MeshLambertMaterial({ color: '#3f6b25', flatShading: true });
+    // old-school tree: leaning tapered trunk with two branch stubs, crown built from a few faceted clumps
+    this.trunkGeo = mergeGeometries([
+      new THREE.CylinderGeometry(0.16, 0.34, 3.2, 6).translate(0, 1.6, 0),
+      new THREE.CylinderGeometry(0.05, 0.12, 1.2, 5).translate(0, 0.6, 0).rotateZ(0.9).translate(0.1, 2.2, 0),
+      new THREE.CylinderGeometry(0.05, 0.11, 1.0, 5).translate(0, 0.5, 0).rotateX(-0.9).translate(0, 2.5, 0.05),
+    ]);
+    this.crownGeo = mergeGeometries([
+      new THREE.IcosahedronGeometry(1.7, 0).scale(1.1, 0.8, 1.1).translate(0, 3.9, 0),
+      new THREE.IcosahedronGeometry(1.2, 0).translate(1.0, 3.4, 0.4),
+      new THREE.IcosahedronGeometry(1.1, 0).translate(-0.8, 3.5, -0.6),
+      new THREE.IcosahedronGeometry(1.0, 0).translate(0.1, 4.7, -0.2),
+    ].map(g => g.toNonIndexed()));
+    this.trunkMat = new THREE.MeshLambertMaterial({ color: '#5a3e24', flatShading: true });
+    this.crownMat = new THREE.MeshLambertMaterial({ color: '#ffffff', flatShading: true });
+    this.tuftGeo = new THREE.ConeGeometry(0.06, 0.32, 3).translate(0, 0.16, 0);
+    this.tuftMat = new THREE.MeshLambertMaterial({ color: '#93a63e', flatShading: true });
     this.buildingMat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide, map: facadeTexture() });
   }
 
@@ -42,7 +55,7 @@ export class World {
   unload(k) {
     const c = this.chunks.get(k);
     if (!c) return;
-    c.group.traverse(o => { if (o.geometry && o.geometry !== this.trunkGeo && o.geometry !== this.crownGeo) o.geometry.dispose(); if (o.material?.map) o.material.map.dispose(); });
+    c.group.traverse(o => { if (o.geometry && o.geometry !== this.trunkGeo && o.geometry !== this.crownGeo && o.geometry !== this.tuftGeo) o.geometry.dispose(); if (o.material?.map) o.material.map.dispose(); });
     this.scene.remove(c.group);
     this.chunks.delete(k);
   }
@@ -139,9 +152,37 @@ export class World {
         q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), h * 6.28);
         m.compose(p.set(tx, 0, tz), q, s.set(sc, sc, sc));
         trunks.setMatrixAt(i, m); crowns.setMatrixAt(i, m);
-        crowns.setColorAt(i, col.set('#3f6b25').offsetHSL((h - 0.5) * 0.05, 0, (h - 0.5) * 0.12));
+        crowns.setColorAt(i, col.set('#3d5f1a').offsetHSL((h - 0.5) * 0.05, 0, (h - 0.5) * 0.1));
       }
       c.group.add(trunks, crowns);
+    }
+
+    // --- grass tufts scattered over parks and lawns
+    if (d.g.length) {
+      const mk = document.createElement('canvas');
+      mk.width = mk.height = 128;
+      const mg = mk.getContext('2d', { willReadFrequently: true });
+      mg.scale(0.5, 0.5);
+      mg.fillStyle = '#fff';
+      for (const rings of d.g) { mg.beginPath(); for (const r of rings) ringPath(mg, r); mg.fill('evenodd'); }
+      const px = mg.getImageData(0, 0, 128, 128).data;
+      const spots = [];
+      for (let i = 0; i < 128 * 128 && spots.length < 3000; i++) {
+        if (px[i * 4 + 3] < 128) continue;
+        const gx = (i % 128) * 2, gz = Math.floor(i / 128) * 2;
+        if (hash(gx + x0, gz + z0) < 0.45) spots.push([gx + hash(gz, gx) * 2, gz + hash(gx + 7, gz) * 2]);
+      }
+      if (spots.length) {
+        const tufts = new THREE.InstancedMesh(this.tuftGeo, this.tuftMat, spots.length);
+        const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s3 = new THREE.Vector3(), p3 = new THREE.Vector3();
+        spots.forEach(([lx, lz], i) => {
+          const h = hash(Math.round(lx * 13), Math.round(lz * 17));
+          q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), h * 6.28);
+          m.compose(p3.set(lx + x0, 0, lz + z0), q, s3.setScalar(0.7 + h * 0.8));
+          tufts.setMatrixAt(i, m);
+        });
+        c.group.add(tufts);
+      }
     }
   }
 
