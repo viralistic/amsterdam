@@ -76,14 +76,17 @@ const TREES = {
   },
   // leaning trunk with long drooping fronds
   tree_willow() {
-    const mb = new MB(), bark = '#6e5a3a', leaf = ['#8aa83a', '#9cb848', '#7a9a30'];
-    mb.add(cyl(0.22, 0.38, 2.6, 6), bark, { rz: 0.12 });
-    const top = { x: -0.3, y: 2.55, z: 0 };
-    mb.add(ico(1.3), leaf[0], { x: top.x, y: top.y + 0.9, z: 0, sy: 0.55 });
-    for (let i = 0; i < 14; i++) {
-      const a = i / 14 * Math.PI * 2 + rnd(-0.2, 0.2), r = rnd(0.9, 1.6), h = rnd(2.0, 2.8);
-      const g = new THREE.ConeGeometry(rnd(0.3, 0.45), h, 4).rotateX(Math.PI).translate(0, -h / 2, 0);
-      mb.add(g, leaf[i % 3], { x: top.x + Math.cos(a) * r, y: top.y + 1.1, z: Math.sin(a) * r, rx: Math.sin(a) * 0.25, rz: -Math.cos(a) * 0.25 });
+    const mb = new MB(), bark = '#6e5a3a', leaf = ['#8aa83a', '#9cb848', '#7a9a30', '#a8c050'];
+    mb.add(cyl(0.24, 0.42, 3.0, 6), bark, { rz: 0.1 });
+    limb(mb, bark, -0.3, 2.7, 0, 1.0, 0.16, 0.08, 0.5, 0.6);
+    limb(mb, bark, -0.3, 2.7, 0, 1.0, 0.16, 0.08, -0.5, -0.6);
+    const top = { x: -0.3, y: 3.0 };
+    mb.add(ico(1.8), leaf[0], { x: top.x, y: top.y + 1.0, sy: 0.55 });
+    mb.add(ico(1.1), leaf[3], { x: top.x, y: top.y + 1.5, sy: 0.6 });
+    for (let i = 0; i < 20; i++) {
+      const a = i / 20 * Math.PI * 2 + rnd(-0.15, 0.15), r = rnd(1.3, 2.0), h = rnd(2.3, 3.1);
+      const g = new THREE.ConeGeometry(rnd(0.38, 0.55), h, 4).rotateX(Math.PI).translate(0, -h / 2, 0);
+      mb.add(g, leaf[i % 4], { x: top.x + Math.cos(a) * r, y: top.y + 1.2, z: Math.sin(a) * r, rx: Math.sin(a) * 0.18, rz: -Math.cos(a) * 0.18 });
     }
     return mb.mesh();
   },
@@ -96,8 +99,8 @@ const TREES = {
       const a = i / 5 * Math.PI * 2 + 0.3;
       tips.push(limb(mb, bark, 0, 2.9, 0, 2.4, 0.16, 0.07, Math.sin(a) * 0.5, -Math.cos(a) * 0.5));
     }
-    tips.forEach((t, i) => mb.add(ico(rnd(1.05, 1.25)), leaf[i % 3], { x: t.x, y: t.y + 0.3, z: t.z, sy: 0.7 }));
-    mb.add(ico(1.5), leaf[1], { y: 5.9, sy: 0.6 });
+    tips.forEach((t, i) => { mb.add(ico(rnd(1.3, 1.5)), leaf[i % 3], { x: t.x, y: t.y + 0.3, z: t.z, sy: 0.7 }); mb.add(ico(0.9), leaf[(i + 1) % 3], { x: t.x * 0.5, y: t.y + 0.9, z: t.z * 0.5, sy: 0.7 }); });
+    mb.add(ico(1.7), leaf[1], { y: 6.0, sy: 0.6 });
     return mb.mesh();
   },
   // round crown in autumn reds and oranges
@@ -175,7 +178,7 @@ registry.objectModels.ore_rock = ({ fleck = '#c8742e', clay = false } = {}) => {
   for (let i = 0; i < 9; i++) {
     const [x, y, z, r] = lumps[i % lumps.length];
     const a = rnd(0, 6.28), b = rnd(-0.6, 0.9);
-    mb.add(new THREE.OctahedronGeometry(rnd(0.08, 0.14)), fleck, { x: x + Math.cos(a) * Math.cos(b) * r * 0.85, y: y + Math.sin(b) * r * 0.7, z: z + Math.sin(a) * Math.cos(b) * r * 0.85 });
+    mb.add(new THREE.OctahedronGeometry(rnd(0.11, 0.17)), fleck, { x: x + Math.cos(a) * Math.cos(b) * r * 0.85, y: y + Math.sin(b) * r * 0.7, z: z + Math.sin(a) * Math.cos(b) * r * 0.85 });
   }
   return group(mb.mesh());
 };

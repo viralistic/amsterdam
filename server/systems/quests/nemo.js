@@ -8,6 +8,8 @@ export default function nemo(api, lib) {
   const { tile, getQ, setQ, msg } = api;
   const st = p => getQ(p, ID);
   const NEEDS = [['iron_bar', 1], ['logs', 2], ['hammer', 1]];
+  const BENCH = [['logs', 2], ['hammer', 1]];
+  const benchText = () => BENCH.filter(([id]) => lib.exists(id)).map(([id, n]) => `${n} x ${lib.lname(id)}`).join(', ');
   const needText = () => NEEDS.filter(([id]) => lib.exists(id)).map(([id, n]) => `${n} x ${lib.lname(id)}`).join(', ');
 
   api.quest({
@@ -17,7 +19,7 @@ export default function nemo(api, lib) {
       { at: 1, todo: ['I should charge the empty battery on the dynamo bike in the energy lab (east of the workshop). Pedal!'], done: 'I charged the battery with genuine pedal power.' },
       { at: 2, todo: () => [`I should cut a set of gears on the laser cutter in the workshop. It needs ${lib.exists('iron_bar') ? 'an iron bar' : 'some metal'}.`], done: 'I cut a set of gears on the laser cutter.' },
       { at: 3, todo: ['I should test the gear train on the gearbox in the workshop.'], done: 'I worked out the gear train on the test gearbox.' },
-      { at: 4, todo: () => [`I should assemble the teleporter at the workbench, with the charged battery, the gears and: ${needText() || 'nothing else'}.`], done: 'I assembled the prototype teleporter.' },
+      { at: 4, todo: () => [`I should assemble the teleporter at the workbench, with the charged battery, the gears and: ${benchText() || 'nothing else'}.`], done: 'I assembled the prototype teleporter.' },
       { at: 5, todo: ['I should show the prototype to Professor Fluks.'] },
     ]),
   });
@@ -64,7 +66,7 @@ export default function nemo(api, lib) {
     s1: [{ npc: 'Pedal the dynamo bike in the energy lab, east side of the workshop. Lost the battery? Here, I have spares.' }, { act: p => { if (!lib.has(p, 'lege_accu') && !lib.has(p, 'volle_accu')) lib.give(p, 'lege_accu'); return 'end'; } }],
     s2: [{ npc: () => `Full battery! Now gears. The laser cutter in the workshop will cut them from ${lib.exists('iron_bar') ? 'an iron bar' : 'scrap metal'}. Do not look into the laser with your remaining eye.` }],
     s3: [{ npc: 'Lovely gears. Before we build, test the gear train on the gearbox. Physics first, explosions later.' }],
-    s4: [{ npc: () => `Everything ready? Assemble it on my workbench. You need the charged battery, the gears${needText() ? ', and ' + needText() : ''}.` }],
+    s4: [{ npc: () => `Everything ready? Assemble it on my workbench. You need the charged battery, the gears${benchText() ? ', and ' + benchText() : ''}.` }],
     s5: [
       { if: p => lib.has(p, 'prototype_teleporteur'), then: 's5ok', else: 's5lost' },
     ],
@@ -136,7 +138,7 @@ export default function nemo(api, lib) {
   });
   lib.on('q_workbench', 'Assemble', p => {
     if (st(p) !== 4) return msg(p, st(p) > 4 ? 'Nothing left to assemble.' : 'The workbench is covered in screws, wires and coffee cups.');
-    const missing = [['volle_accu', 1], ['tandwielen', 1], ...NEEDS].filter(([id, n]) => !lib.hasOrMissing(p, id, n));
+    const missing = [['volle_accu', 1], ['tandwielen', 1], ...BENCH].filter(([id, n]) => !lib.hasOrMissing(p, id, n));
     if (missing.length) return msg(p, `You still need: ${missing.map(([id, n]) => `${n} x ${lib.lname(id)}`).join(', ')}.`);
     if (!lib.exists('prototype_teleporteur')) return;
     api.startAction(p, { first: 2, every: 3, anim: 'craft', name: 'assemble', step: pl => {
