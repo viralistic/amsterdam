@@ -227,10 +227,19 @@ function objectsNear(x, z, r) {
 }
 
 // ---------------------------------------------------------------- NPCs
+let npcSeq = 0;
 function spawnNpc(def) {
-  const n = { id: npcs.length + 1, def, x: def.at.x, z: def.at.z, name: def.name, hp: def.combat?.hp || 0, dead: 0, target: null, atk: 0, dmgBy: new Map(), inside: def.at.x >= INTERIOR_BASE || def.at.z >= INTERIOR_BASE };
+  const n = { id: ++npcSeq, def, x: def.at.x, z: def.at.z, name: def.name, hp: def.combat?.hp || 0, dead: 0, target: null, atk: 0, dmgBy: new Map(), inside: def.at.x >= INTERIOR_BASE || def.at.z >= INTERIOR_BASE };
   npcs.push(n);
   return n;
+}
+// despawn a temporary NPC (quest helpers, summons); anyone fighting it stops
+function removeNpc(n) {
+  const i = npcs.indexOf(n);
+  if (i < 0) return;
+  npcs.splice(i, 1);
+  n.dead = Infinity; n.removed = true;
+  for (const p of players.values()) if (p.target === n) p.target = null;
 }
 for (const d of NPCS) spawnNpc(d);
 
@@ -1034,21 +1043,44 @@ function interiorChunk(cx, cz) {
   const rect = (a, b, c, d) => [...L(a, b), ...L(c, b), ...L(c, d), ...L(a, d), ...L(a, b)];
   for (const def of reg.interiors) {
     if (def.x1 < x0 || def.x0 > x1 || def.z1 < z0 || def.z0 > z1) continue;
-    for (const r of def.rooms || []) {
+    const rooms = def.rooms || [];
+    const inFloor = (self, x, z) => rooms.some(o => o !== self && x >= o.x0 && x < o.x1 && z >= o.z0 && z < o.z1);
+    // absolute door intervals on a wall line, from this room and from neighbours whose opposite side is the same line
+    const doorsOn = (r, side) => {
+      const own = (r.doors || []).filter(d => d[0] === side).map(([, o, w]) => (side === 'n' || side === 's' ? [r.x0 + o, r.x0 + o + w] : [r.z0 + o, r.z0 + o + w]));
+      for (const o of rooms) {
+        if (o === r) continue;
+        if (side === 'n' && o.z1 === r.z0) for (const [sd, off, w] of o.doors || []) if (sd === 's') own.push([o.x0 + off, o.x0 + off + w]);
+        if (side === 'w' && o.x1 === r.x0) for (const [sd, off, w] of o.doors || []) if (sd === 'e') own.push([o.z0 + off, o.z0 + off + w]);
+      }
+      return own.sort((u, v) => u[0] - v[0]);
+    };
+    for (const r of rooms) {
       out.fl.push([r.floor || '#5a5048', rect(r.x0, r.z0, r.x1, r.z1)]);
-      const h = r.h ?? 3.5, col = r.wall || '#6e6458', t = 0.5;
-      const gaps = { n: [], s: [], e: [], w: [] };
-      for (const [side, off, width] of r.doors || []) gaps[side].push([off, off + width]);
-      const run = (side, a, b, fixed, horiz) => {
-        const cuts = gaps[side].map(([o0, o1]) => [a + o0, a + o1]).sort((u, v) => u[0] - v[0]);
-        let cur = a;
-        for (const [c0, c1] of [...cuts, [b, b]]) {
-          if (c0 > cur) out.b.push([h, 0, horiz ? rect(cur, fixed - t / 2, c0, fixed + t / 2) : rect(fixed - t / 2, cur, fixed + t / 2, c0), col]);
+      const h = r.h ?? 3.5, col = r.wall || '#6e6458';
+      // walls fill the whole tile row just outside the room, so they block on the 1 px per metre collision map.
+      // North and south runs reach one tile further to close the corners. Where two rooms share an edge, the
+      // second room's west/north wall is the shared wall (with both rooms' doors cut into it).
+      const run = (side, a, b, f0, f1, horiz) => {
+        const cuts = doorsOn(r, side);
+        const skip = side === 's' || side === 'e';
+        let cur = horiz ? a - 1 : a;
+        const end = horiz ? b + 1 : b;
+        const piece = (u, v) => {
+          // split around tiles that lie on another room's floor (east/south walls only)
+          let st = u;
+          for (let t = u; t <= v; t++) {
+            const blocked = t < v && skip && inFloor(r, horiz ? t : f0, horiz ? f0 : t);
+            if (t === v || blocked) { if (t > st) out.b.push([h, 0, horiz ? rect(st, f0, t, f1) : rect(f0, st, f1, t), col]); st = t + 1; }
+          }
+        };
+        for (const [c0, c1] of [...cuts, [end, end]]) {
+          if (c0 > cur) piece(cur, Math.min(c0, end));
           cur = Math.max(cur, c1);
         }
       };
-      run('n', r.x0, r.x1, r.z0, true); run('s', r.x0, r.x1, r.z1, true);
-      run('w', r.z0, r.z1, r.x0, false); run('e', r.z0, r.z1, r.x1, false);
+      run('n', r.x0, r.x1, r.z0 - 1, r.z0, true); run('s', r.x0, r.x1, r.z1, r.z1 + 1, true);
+      run('w', r.z0, r.z1, r.x0 - 1, r.x0, false); run('e', r.z0, r.z1, r.x1, r.x1 + 1, false);
     }
     for (const [color, pts] of def.floors || []) { const ring = []; for (let i = 0; i < pts.length; i += 2) ring.push(...L(pts[i], pts[i + 1])); out.fl.push([color, ring]); }
     for (const [a, b, c, d, h = 3.5, color = '#6e6458'] of def.walls || []) out.b.push([h, 0, rect(a, b, c, d), color]);
@@ -1319,7 +1351,7 @@ const api = {
   // inventory
   invAdd, invRemove, invCount, hasItem, freeSlots, canAdd, giveOrDrop, sendInv, dropGround,
   // world
-  spawnObject, removeObject, deplete, isDepleted, objectsNear, spawnNpc, respawnNpc, teleport, canTeleport, interior,
+  spawnObject, removeObject, deplete, isDepleted, objectsNear, spawnNpc, removeNpc, respawnNpc, teleport, canTeleport, interior,
   // interfaces
   startDialog, closeIface, openShop, openBank, makeMenu, startAction, stopAction, gather,
   // combat
