@@ -83,7 +83,7 @@ export default function transport(api, E) {
     api.objectAction(type, 'Buy-card', p => buyCard(p));
     api.objectAction(type, 'Check-balance', p => checkBalance(p));
   }
-  api.itemOp('Check-balance', p => checkBalance(p));
+  api.itemOp('Check-balance', (p, slot, item) => item.id === 'ov_chipkaart' ? checkBalance(p) : false);
 
   // ---- travel
   function travel(p, kind, from, to, fare) {
@@ -173,7 +173,8 @@ export default function transport(api, E) {
   E.stopRide = stopRide;
   const nearRack = p => api.objectsNear(p.x, p.z, 10).some(o => o.type === 'ovfiets_rack');
 
-  api.itemOp('Ride', p => {
+  api.itemOp('Ride', (p, slot, item) => {
+    if (item.id !== 'ov_fiets') return false; // chained option: leave other packs' 'Ride' items alone
     if (!p.ecoRide) return startRide(p);
     stopRide(p);
     // the parkeerboete joke: parking on the busiest squares gets you a fine from the handhaving
@@ -232,7 +233,7 @@ export default function transport(api, E) {
     api.touch();
     api.msg(p, `You pay the parkeerboete. ${s.fines ? `${s.fines} fine(s) left.` : 'The Gemeente thanks you for your contribution.'}`);
   }
-  api.itemOp('Pay-fine', p => payFine(p));
+  api.itemOp('Pay-fine', (p, slot, item) => item.id === 'parkeerboete' ? payFine(p) : false);
   const hh = api.tile(52.37285, 4.8915);
   api.spawnNpc({ name: 'Handhaver', type: 'handhaver', at: hh, wander: 8, look: L(1, 2, 0, 5, 5, '#1c2b4a'), eq: { head: 'flat_cap' }, talk: 'handhaver', actions: ['Pay-fine'], ex: 'Municipal enforcement. Loves a badly parked bike.', chatter: ['Fiets van de stoep, alstublieft!', 'Ik zie alles.'] });
   api.npcAction('handhaver', 'Pay-fine', p => payFine(p));

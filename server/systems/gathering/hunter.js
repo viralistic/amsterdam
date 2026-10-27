@@ -24,7 +24,7 @@ export function setupHunter(api) {
 
   api.itemOp('Lay', (p, slot, item) => {
     const kind = item.id;
-    if (!CREATURES[kind]) return;
+    if (!CREATURES[kind]) return false;
     if (p.inside) return api.msg(p, "You can't lay a trap in here.");
     const need = minLevel(kind);
     if (api.lv(p, 'hunter') < need) return api.msg(p, `You need a Hunter level of ${need} to use ${kind === 'box_trap' ? 'a box trap' : 'a bird snare'}.`);

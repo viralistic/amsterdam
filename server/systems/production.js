@@ -19,7 +19,8 @@ export default function register(api) {
     for (const h of P.useHandlers) if (h(p, u)) return true;
     return false;
   });
-  for (const [name, f] of Object.entries(P.itemOps)) api.itemOp(name, (p, slot, item, def) => { f(p, slot, item, def); });
+  // pass the handler's result through: false means "not my item", so another pack's handler for the same option can run
+  for (const [name, f] of Object.entries(P.itemOps)) api.itemOp(name, (p, slot, item, def) => f(p, slot, item, def));
 
   // OSRS inventory options on other packs' items: 'Clean' on grimy herbs and 'Light' on logs.
   // Added only when the owning pack did not give the item any options of its own (see docs/requests/production.md).

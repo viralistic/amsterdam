@@ -81,7 +81,7 @@ Players and items
 
 Interaction hooks
 - `api.objectAction(type, action, (p, obj, api) => ...)`; `api.npcAction(npcTypeOrName, action, (p, npc, api) => ...)`
-- `api.itemOp(opName, (p, slot, item, def, api) => ...)` for items with `ops: [opName]`
+- `api.itemOp(opName, (p, slot, item, def, api) => ...)` for items with `ops: [opName]`. Several packs may register the same option: handlers run in load order and the first that does not return `false` wins, so return `false` for items your pack doesn't own.
 - `api.onUse((p, u, api) => handled)`; `u = { slot, item, def, kind: 'item'|'obj'|'npc'|'player', targetSlot?, target?, targetDef?, obj?, npc?, player? }`. Return true if handled.
 - `api.gather(p, obj, { skill, level, xp, item (id or fn(p, level)), tools: [{ id, level, power }], toolMsg, bait?, chance?(level, tool), every? (ticks), deplete? (chance per success), respawn? (ticks or [min,max]), anim, startMsg, successMsg, depleteMsg, onSuccess? })`
 - `api.startAction(p, { first, every, anim, obj?, step: p => boolean })` repeating skilling action (stops when the player moves). Anims: chop mine fish smith cook craft pray pick farm attack.

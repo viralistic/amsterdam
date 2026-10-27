@@ -7,12 +7,12 @@ const MAKEOVER = 750;
 
 export default function misc(api, E) {
   api.itemOp('View', (p, slot, item) => {
-    if (item.id !== 'canal_map') return;
+    if (item.id !== 'canal_map') return false;
     api.send(p, { t: 'eco_map', here: p.region, regions: REGIONS.map(r => ({ id: r.id, name: r.name, type: r.type, role: r.role })), stations: STATIONS.map(s => s.name) });
   });
 
   api.itemOp('Take-one', (p, slot, item) => {
-    if (item.id !== 'stroopwafel_tin') return;
+    if (item.id !== 'stroopwafel_tin') return false;
     const s = E.ps(p);
     const day = Math.floor(Date.now() / 86_400_000);
     if (s.tinDay === day) return api.msg(p, 'The tin is empty. It will be full again tomorrow. Nobody knows how.');
@@ -23,7 +23,7 @@ export default function misc(api, E) {
   });
 
   api.itemOp('Teleport-Dam', (p, slot, item) => {
-    if (!api.ITEMS[item.id]?.wapen) return;
+    if (!api.ITEMS[item.id]?.wapen) return false;
     const s = E.ps(p);
     const wait = (s.capeTp || 0) + 10 * 60_000 - Date.now();
     if (wait > 0) return api.msg(p, `The cape needs ${Math.ceil(wait / 60_000)} more minute(s) to recharge.`);

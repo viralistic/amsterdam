@@ -158,7 +158,7 @@ export function setupResources(api, G) {
   const NEST_SEEDS = [[30, 'potato_seed', 3, 8], [25, 'onion_seed', 3, 6], [20, 'cabbage_seed', 3, 6], [18, 'guam_seed', 1, 2], [12, 'marrentill_seed', 1, 2],
     [9, 'tarromin_seed', 1, 2], [6, 'harralander_seed', 1, 1], [4, 'ranarr_seed', 1, 1]];
   api.itemOp('Search', (p, slot, item) => {
-    if (item.id !== 'bird_nest') return;
+    if (item.id !== 'bird_nest') return false;
     const rings = ['sapphire_ring', 'gold_ring'].filter(id => ITEMS[id]);
     let reward;
     if (rings.length && Math.random() < 0.05) reward = [rings[Math.random() < 0.3 ? 0 : rings.length - 1], 1];
