@@ -95,7 +95,7 @@ export const MONSTERS = {
   cb_zakkenroller: {
     name: 'Zakkenroller', look: { g: 0, skin: 0, hair: 7, top: 5, legs: 5, topC: '#2a2a32' }, eq: { head: 'beanie' }, wander: 8, respawn: 50,
     ex: 'A fantasy pickpocket. Has your wallet. Had your wallet. Has it again.', chatter: ['Nice phone you got there...', 'Psst!'],
-    combat: cb(14, 16, 12, 11, 8, 3, { aggressive: true, aggroRange: 3, speed: 3 }),
+    combat: cb(14, 16, 12, 11, 8, 3, { speed: 3 }),
     drops: { always: [['bones', 1]], table: [[8, 'coins', 5, 40], [5, 'coin_pouch', 1, 3], [2, 'bike_bell', 1, 1], [2, 'bike_key', 1, 1], [1, 'canal_ring', 1, 1], [4, null]] },
   },
   cb_guard: {

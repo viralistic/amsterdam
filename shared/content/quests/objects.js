@@ -74,6 +74,7 @@ export const OBJECTS = {
   q_plank_crate: O('Timber crate', ['Take-plank'], 'Spare oak planks for repairs.', 'q_crate', { color: '#8a6a3a' }, { blocks: true }),
   q_ship_wheel: O('Ship\'s wheel', ['Steer'], 'Actually a whipstaff would be more historical, but this is easier.', 'q_wheel', {}, { blocks: true }),
   q_dragnet: O('Drag net', ['Drag'], 'A heavy net over the side, for hauling up lost cargo.', 'q_dragnet', {}),
+  q_gangplank: O('Gangplank', ['Board'], 'A gangplank up to the deck of the Amsterdam.', 'q_gangplank', {}),
   q_cannon: O('Cannon', [], 'A cast-iron cannon. Empty, thankfully.', 'q_cannon', {}, { blocks: true }),
 
   // Het Hart van Zuidoost

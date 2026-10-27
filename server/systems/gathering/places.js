@@ -50,34 +50,40 @@ const BOSBAAN = [[52.3318, 4.8420], [52.3322, 4.8500], [52.3326, 4.8580], [52.33
 // ---- woodcutting: each area is also a possible "Gemeente Boomplantdag" location
 export const TREE_AREAS = [
   { id: 'jordaan', name: 'de Jordaan', type: 'tree_normal', green: false, pts: [
-    ...along([[52.3792, 4.8855], [52.3779, 4.8802]], 10, { side: 7, twoSided: true }), // Westerstraat
-    ...along([[52.3806, 4.8853], [52.3797, 4.8806]], 8, { side: 6, twoSided: true }), // Lindengracht
-    ...along([[52.3747, 4.8829], [52.3741, 4.8790]], 6, { side: 6, twoSided: true }), // Bloemgracht
-    ...along([[52.3702, 4.8842], [52.3694, 4.8806]], 6, { side: 6, twoSided: true }), // Elandsgracht
+    ...along([[52.3792, 4.8855], [52.3779, 4.8802]], 20, { side: 7, twoSided: true }), // Westerstraat
+    ...along([[52.3806, 4.8853], [52.3797, 4.8806]], 16, { side: 6, twoSided: true }), // Lindengracht
+    ...disc(52.3794, 4.8857, 16, 6), // Noordermarkt
+    ...along([[52.3747, 4.8829], [52.3741, 4.8790]], 10, { side: 6, twoSided: true }), // Bloemgracht
+    ...along([[52.3702, 4.8842], [52.3694, 4.8806]], 10, { side: 6, twoSided: true }), // Elandsgracht
   ] },
   { id: 'pijp', name: 'De Pijp', type: 'tree_normal', green: true, pts: [
-    ...disc(52.3543, 4.8968, 70, 14), // Sarphatipark
-    ...along([[52.3585, 4.8908], [52.3530, 4.8930]], 8, { side: 9, twoSided: true }), // Ferdinand Bolstraat
-    ...along([[52.3650, 4.8976], [52.3610, 4.8990]], 6, { side: 6, twoSided: true }), // Utrechtsestraat
+    ...disc(52.3543, 4.8968, 60, 18), // Sarphatipark
+    ...along([[52.3585, 4.8908], [52.3530, 4.8930]], 14, { side: 9, twoSided: true }), // Ferdinand Bolstraat
+    ...along([[52.3650, 4.8976], [52.3610, 4.8990]], 10, { side: 6, twoSided: true }), // Utrechtsestraat
   ] },
   { id: 'vondelpark', name: 'het Vondelpark', type: 'tree_oak', green: true, pts: [
-    ...along(VONDEL, 18, { side: 45, twoSided: true, jitter: 18 }),
-    ...along(VONDEL, 12, { side: 0, jitter: 30 }),
+    ...disc(52.3606, 4.8762, 26, 10), ...disc(52.3591, 4.8716, 26, 10), ...disc(52.3576, 4.8668, 26, 10), ...disc(52.3563, 4.8616, 24, 9),
   ] },
-  { id: 'amstel', name: 'de Amstel', type: 'tree_willow', shore: true, pts: along(AMSTEL, 26, { side: 42, twoSided: true, jitter: 6 }) },
+  { id: 'amstel', name: 'de Amstel', type: 'tree_willow', shore: true, pts: [
+    ...along([[52.3612, 4.9038], [52.3592, 4.9047]], 10, { side: 40, twoSided: true, jitter: 5 }),
+    ...along([[52.3550, 4.9060], [52.3530, 4.9064]], 10, { side: 40, twoSided: true, jitter: 5 }),
+    ...along([[52.3480, 4.9068], [52.3460, 4.9067]], 10, { side: 40, twoSided: true, jitter: 5 }),
+  ] },
   { id: 'grachten', name: 'de grachtengordel', type: 'tree_elm', shore: true, pts: [
-    ...along(CANALS.keizersgracht, 18, { side: 11, twoSided: true, jitter: 3 }),
-    ...along(CANALS.prinsengracht, 16, { side: 11, twoSided: true, jitter: 3 }),
-    ...along(CANALS.herengracht, 12, { side: 11, twoSided: true, jitter: 3 }),
+    ...along([[52.3756, 4.8838], [52.3740, 4.8831]], 12, { side: 11, twoSided: true, jitter: 2 }), // Prinsengracht by the Westerkerk
+    ...along([[52.3736, 4.8851], [52.3720, 4.8846]], 12, { side: 11, twoSided: true, jitter: 2 }), // Keizersgracht, Negen Straatjes
+    ...along([[52.3702, 4.8818], [52.3688, 4.8818]], 12, { side: 11, twoSided: true, jitter: 2 }), // Prinsengracht south-west
+    ...along([[52.3662, 4.8922], [52.3658, 4.8950]], 12, { side: 11, twoSided: true, jitter: 2 }), // Herengracht, Gouden Bocht
+    ...along([[52.3641, 4.8958], [52.3636, 4.8988]], 12, { side: 11, twoSided: true, jitter: 2 }), // Keizersgracht east
   ] },
-  { id: 'westerpark', name: 'het Westerpark', type: 'tree_maple', green: true, pts: along(WESTERPARK, 24, { side: 28, twoSided: true, jitter: 16 }) },
-  { id: 'hortus', name: 'de Hortus Botanicus', type: 'tree_yew', green: true, pts: disc(52.3666, 4.9082, 30, 6) },
-  { id: 'bos', name: 'het Amsterdamse Bos', type: 'tree_oak', green: true, pts: disc(52.3245, 4.8480, 140, 12), extra: [
-    { type: 'tree_normal', pts: disc(52.3290, 4.8560, 90, 10) },
-    { type: 'tree_willow', shore: true, pts: along(BOSBAAN, 8, { side: 40, twoSided: true, jitter: 6 }) },
-    { type: 'tree_maple', pts: disc(52.3180, 4.8400, 80, 6) },
+  { id: 'westerpark', name: 'het Westerpark', type: 'tree_maple', green: true, pts: [...disc(52.3866, 4.8795, 30, 13), ...disc(52.3876, 4.8838, 30, 13)] },
+  { id: 'hortus', name: 'de Hortus Botanicus', type: 'tree_yew', green: true, pts: disc(52.3666, 4.9082, 28, 7) },
+  { id: 'bos', name: 'het Amsterdamse Bos', type: 'tree_oak', green: true, pts: disc(52.3245, 4.8480, 45, 12), extra: [
+    { type: 'tree_normal', pts: disc(52.3290, 4.8560, 40, 10) },
+    { type: 'tree_willow', shore: true, pts: along([[52.3322, 4.8480], [52.3324, 4.8530]], 10, { side: 40, twoSided: true, jitter: 5 }) },
+    { type: 'tree_maple', pts: disc(52.3180, 4.8400, 35, 8) },
   ] },
-  { id: 'betoverd', name: 'het Betoverde Bos', type: 'tree_magic', green: true, noEvent: true, pts: disc(52.3105, 4.8330, 35, 5) },
+  { id: 'betoverd', name: 'het Betoverde Bos', type: 'tree_magic', green: true, noEvent: true, pts: disc(52.3105, 4.8330, 30, 5) },
 ];
 
 // ---- mining
@@ -101,16 +107,17 @@ export const ROCK_AREAS = [
 
 // ---- fishing: each group has a few active spots that hop between candidate tiles
 export const SPOT_GROUPS = [
-  { type: 'fish_canal', active: 2, cands: along(CANALS.prinsengracht, 8, { jitter: 2 }) },
-  { type: 'fish_canal', active: 2, cands: along(CANALS.keizersgracht, 8, { jitter: 2 }) },
-  { type: 'fish_canal', active: 1, cands: along(CANALS.herengracht, 6, { jitter: 2 }) },
-  { type: 'fish_canal', active: 1, cands: along(CANALS.brouwersgracht, 4, { jitter: 2 }) },
-  { type: 'fish_canal', active: 1, cands: along(CANALS.reguliersgracht, 4, { jitter: 2 }) },
-  { type: 'fish_pond', active: 3, cands: [...disc(52.3592, 4.8742, 25, 3), ...disc(52.3580, 4.8695, 25, 3), ...disc(52.3568, 4.8638, 20, 2)] },
-  { type: 'fish_river', active: 4, cands: along(AMSTEL, 12, { side: 30, twoSided: true, jitter: 4 }) },
+  { type: 'fish_canal', active: 3, cands: along([[52.3758, 4.8839], [52.3738, 4.8830]], 6, { jitter: 2 }) }, // Prinsengracht, Westerkerk
+  { type: 'fish_canal', active: 2, cands: along([[52.3730, 4.8849], [52.3714, 4.8846]], 5, { jitter: 2 }) }, // Keizersgracht
+  { type: 'fish_canal', active: 2, cands: along([[52.3810, 4.8890], [52.3813, 4.8860]], 5, { jitter: 2 }) }, // Brouwersgracht
+  { type: 'fish_canal', active: 2, cands: along([[52.3650, 4.8963], [52.3632, 4.8970]], 4, { jitter: 2 }) }, // Reguliersgracht
+  { type: 'fish_pond', active: 3, cands: disc(52.3591, 4.8735, 25, 6) }, // Vondelpark, big pond
+  { type: 'fish_pond', active: 2, cands: disc(52.3570, 4.8645, 20, 4) }, // Vondelpark, west pond
+  { type: 'fish_river', active: 3, cands: along([[52.3612, 4.9038], [52.3592, 4.9047]], 6, { side: 25, twoSided: true, jitter: 4 }) }, // Amstel by the Hogesluis
+  { type: 'fish_river', active: 3, cands: along([[52.3550, 4.9060], [52.3530, 4.9064]], 6, { side: 25, twoSided: true, jitter: 4 }) }, // Amstel, Weesperzijde
   { type: 'fish_harbour', active: 3, cands: [[52.3728, 4.9140], [52.3726, 4.9162], [52.3711, 4.9128], [52.3735, 4.9152], [52.3720, 4.9172]].map(([a, b]) => T(a, b)) }, // Scheepvaartmuseum
   { type: 'fish_harbour', active: 2, cands: [[52.4005, 4.8922], [52.4001, 4.8946], [52.3998, 4.8900], [52.4008, 4.8960]].map(([a, b]) => T(a, b)) }, // NDSM piers
-  { type: 'fish_shark', active: 3, cands: [[52.3105, 4.9858], [52.3140, 4.9930], [52.3075, 4.9940], [52.3100, 4.9995], [52.3125, 4.9880]].map(([a, b]) => T(a, b)) }, // Gaasperplas (Wilderness ~24-35)
+  { type: 'fish_shark', active: 3, cands: [[52.3105, 4.9858], [52.3112, 4.9868], [52.3098, 4.9862], [52.3120, 4.9880], [52.3090, 4.9872]].map(([a, b]) => T(a, b)) }, // Gaasperplas, west shore (Wilderness ~35)
 ];
 
 // ---- flax and farming

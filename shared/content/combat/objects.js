@@ -27,6 +27,7 @@ export const OBJECTS = {
   cb_metro_entrance: { name: 'Metro entrance', actions: ['Descend'], ex: 'Stairs down into the haunted metro tunnels.', model: 'cb_metro', params: {}, size: [2, 2] },
   cb_metro_exit: { name: 'Station stairs', actions: ['Climb-up'], ex: 'Back up to daylight.', model: 'stairs', params: {}, size: [2, 2] },
   cb_metro_passage: { name: 'Dark tunnel', actions: ['Walk-through'], ex: 'The tunnel continues into the dark. It gets colder further in.', model: 'cb_tunnelmouth', params: {}, size: [2, 1] },
+  cb_tunnel_crawl: { name: 'Collapsed tunnel', actions: ['Squeeze-through'], ex: 'A narrow crawlspace through the rubble. Agility 52 needed.', model: 'cb_agi', params: { kind: 'crawl' } },
   cb_lair_entrance: { name: 'Collapsed bunker', actions: ['Climb-down'], ex: 'A crack in the concrete. Something huge breathes below.', model: 'cb_bunker', params: {}, size: [3, 3] },
   cb_debris: { name: 'Falling debris', actions: [], ex: 'Move!', model: 'cb_debris_mark', params: {} },
   cb_outpost_flag: { name: 'Outpost banner', actions: ['Read'], ex: 'The banner of a safe border outpost.', model: 'cb_flag', params: {} },

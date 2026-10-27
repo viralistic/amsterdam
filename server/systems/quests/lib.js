@@ -50,12 +50,12 @@ export function makeLib(api) {
   // ---- interiors with one-tile thick walls (so the client collision map really blocks them)
   // rooms: [{ x0, z0, x1, z1, floor, wall, h }] inclusive tile ranges. open: [[x, z]] or [[x0, z0, x1, z1]] extra floor (doorways).
   // gaps: [[x, z]] tiles with floor but no wall, for door objects to sit in. deco: [[color, [x, z, ...]]] floor decoration.
-  function buildInterior({ id, name, rooms, open = [], gaps = [], deco = [], walls: extra = [], ...flags }) {
+  function buildInterior({ id, name, rooms, open = [], gaps = [], deco = [], under = [], walls: extra = [], ...flags }) {
     const floor = new Map();
     const key = (x, z) => x + ',' + z;
     for (const r of rooms) for (let x = r.x0; x <= r.x1; x++) for (let z = r.z0; z <= r.z1; z++) floor.set(key(x, z), r);
     const near = (x, z) => { for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) { const r = floor.get(key(x + dx, z + dz)); if (r) return r; } return rooms[0]; };
-    const floors = rooms.map(r => [r.floor || '#5a5048', [r.x0, r.z0, r.x1 + 1, r.z0, r.x1 + 1, r.z1 + 1, r.x0, r.z1 + 1]]);
+    const floors = [...under, ...rooms.map(r => [r.floor || '#5a5048', [r.x0, r.z0, r.x1 + 1, r.z0, r.x1 + 1, r.z1 + 1, r.x0, r.z1 + 1]])];
     const rect = a => a.length === 2 ? [a[0], a[1], a[0], a[1]] : a;
     for (const o of [...open, ...gaps]) {
       const [x0, z0, x1, z1] = rect(o);
@@ -122,8 +122,19 @@ export function makeLib(api) {
     return api.spawnNpc(def);
   }
 
+  // Object actions shared between quests: handlers run in order until one returns something other than false.
+  const objHandlers = {};
+  function on(type, action, fn) {
+    const k = type + '|' + action;
+    if (!objHandlers[k]) {
+      objHandlers[k] = [];
+      api.objectAction(type, action, (p, obj) => { for (const f of objHandlers[k]) if (f(p, obj, api) !== false) return; api.msg(p, 'Nothing interesting happens.'); });
+    }
+    objHandlers[k].push(fn);
+  }
+
   // Players standing in an area (for boss credit)
   const playersNear = (x, z, r) => [...api.players.values()].filter(p => api.cheb(p.x, p.z, x, z) <= r);
 
-  return { exists, name, lname, give, has, hasOrMissing, take, hasAny, inBank, store, qdata, journal, buildInterior, innerDoor, entrance, exit, stairs, npc, playersNear, L };
+  return { on, exists, name, lname, give, has, hasOrMissing, take, hasAny, inBank, store, qdata, journal, buildInterior, innerDoor, entrance, exit, stairs, npc, playersNear, L };
 }

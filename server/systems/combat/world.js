@@ -16,14 +16,14 @@ export function registerWorld(api, U) {
   S('cb_squirrel', 52.3570, 4.8650, 1);
 
   // ---- the farm by the Riekermolen and the Amstelpark petting farm
-  S('cb_cow', 52.3262, 4.8880, 5, 7);
-  S('cb_chicken', 52.3279, 4.8926, 5, 4);
-  S('cb_sheep', 52.3254, 4.8926, 4, 5);
+  S('cb_cow', 52.3264, 4.8902, 5, 7);
+  S('cb_chicken', 52.3271, 4.8916, 5, 4);
+  S('cb_sheep', 52.3262, 4.8914, 4, 5);
   S('cb_chicken', 52.3316, 4.8917, 3, 3);
   S('cb_sheep', 52.3312, 4.8930, 2, 3);
-  const farm = T(52.3270, 4.8913);
+  const farm = T(52.3267, 4.8910);
   for (const [dx, dz] of [[-3, 2], [-4, 2], [6, -3]]) api.spawnObject({ type: 'cb_hay', x: farm.x + dx, z: farm.z + dz });
-  const cows = T(52.3262, 4.8880);
+  const cows = T(52.3264, 4.8902);
   api.spawnObject({ type: 'cb_trough', x: cows.x + 2, z: cows.z - 6 });
   api.spawnNpc({ name: 'Boer Bart', at: farm, wander: 2, look: { g: 0, skin: 0, hair: 3, top: 2, legs: 1, topC: '#7a5a2a' }, eq: { head: 'flat_cap', feet: 'clogs' }, talk: 'cb_farmer', shop: 'cb_farm', ex: 'A farmer from the Riekerpolder. Smells of hay and coffee.' });
   api.shop('cb_farm', { name: "Boer Bart's Boerderijwinkel", stock: ['shears', 'bucket', 'gouda'], limits: { shears: 10 } });

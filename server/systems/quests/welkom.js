@@ -113,7 +113,7 @@ export default function welkom(api, lib) {
   const spot = api.spawnObject({ type: 'q_tut_fishspot', ...tile(52.37772, 4.90122) });
   api.spawnObject({ type: 'q_tut_stove', ...tile(52.37790, 4.90055) });
 
-  api.objectAction('q_tut_tree', 'Chop down', (p, obj) => {
+  lib.on('q_tut_tree', 'Chop down', (p, obj) => {
     if (!lib.exists('logs')) return msg(p, 'The tree seems to be made of cardboard today. (Logs are not available in this world yet.)');
     const tools = AXES.filter(([id]) => lib.exists(id)).map(([id, level, power]) => ({ id, level, power }));
     api.gather(p, obj, {
@@ -123,7 +123,7 @@ export default function welkom(api, lib) {
       chance: level => Math.min(0.9, 0.55 + level * 0.02),
     });
   });
-  api.objectAction('q_tut_fishspot', 'Net', (p, obj) => {
+  lib.on('q_tut_fishspot', 'Net', (p, obj) => {
     if (!lib.exists('raw_shrimps')) return msg(p, 'The shrimps are on strike. (Raw shrimps are not available in this world yet.)');
     api.gather(p, obj, {
       skill: 'fishing', level: 1, xp: 10, item: 'raw_shrimps', tools: lib.exists('small_net') ? [{ id: 'small_net', level: 1, power: 1 }] : undefined,
@@ -147,7 +147,7 @@ export default function welkom(api, lib) {
       },
     });
   }
-  api.objectAction('q_tut_stove', 'Cook', p => cook(p));
+  lib.on('q_tut_stove', 'Cook', p => cook(p));
   api.onUse((p, u) => {
     if (u.kind !== 'obj' || u.obj.type !== 'q_tut_stove') return false;
     if (u.item.id === 'raw_shrimps') cook(p);

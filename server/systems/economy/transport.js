@@ -232,7 +232,7 @@ export default function transport(api, E) {
     api.touch();
     api.msg(p, `You pay the parkeerboete. ${s.fines ? `${s.fines} fine(s) left.` : 'The Gemeente thanks you for your contribution.'}`);
   }
-  api.itemOp('Pay', p => payFine(p));
+  api.itemOp('Pay-fine', p => payFine(p));
   const hh = api.tile(52.37285, 4.8915);
   api.spawnNpc({ name: 'Handhaver', type: 'handhaver', at: hh, wander: 8, look: L(1, 2, 0, 5, 5, '#1c2b4a'), eq: { head: 'flat_cap' }, talk: 'handhaver', actions: ['Pay-fine'], ex: 'Municipal enforcement. Loves a badly parked bike.', chatter: ['Fiets van de stoep, alstublieft!', 'Ik zie alles.'] });
   api.npcAction('handhaver', 'Pay-fine', p => payFine(p));

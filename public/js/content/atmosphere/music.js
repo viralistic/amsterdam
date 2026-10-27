@@ -209,11 +209,12 @@ onSettings(() => { if (!settings.musicOn && P.cur) stopMusic(); });
 // ---- Music tab
 css('atmo-music-css', `
 #tab-music .mu-now { color: #ff981f; font-size: 12px; margin: 2px 0 6px; text-align: center; }
-#tab-music .mu-list { background: #1e1912; border: 1px solid #000; height: 210px; overflow-y: auto; padding: 3px 5px; }
+#tab-music .mu-list { background: #1e1912; border: 1px solid #000; height: 128px; overflow-y: auto; padding: 3px 5px; }
 #tab-music .mu-list div { font-size: 12px; padding: 1px 0; cursor: pointer; color: #ff2a2a; text-shadow: 1px 1px 0 #000; }
 #tab-music .mu-list div.on { color: #2ae02a; }
 #tab-music .mu-list div.cur { color: #ffff00; }
-#tab-music .mu-btns { display: flex; gap: 4px; margin: 6px 0; }
+#tab-music .mu-btns { display: flex; gap: 4px; margin: 4px 0; }
+#tab-music .note { margin: 3px 0; }
 #tab-music .mu-btns button { flex: 1; min-width: 0; padding: 5px 2px; }
 #tab-music .mu-btns button.sel { color: #ffff00; }
 #tab-music label { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #ff981f; }

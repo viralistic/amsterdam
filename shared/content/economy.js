@@ -3,15 +3,15 @@
 
 const cape = (tier, name, bonus, ex) => ({
   name, value: [0, 2000, 8000, 30000][tier], slot: 'cape', color: '#c8102e', tradeable: false, wapen: tier, ...bonus, ex,
-  ...(tier === 3 ? { ops: ['Teleport'] } : {}),
+  ...(tier === 3 ? { ops: ['Teleport-Dam'] } : {}),
 });
 
 export const ITEMS = {
   ov_chipkaart: { name: 'OV-chipkaart', value: 8, ops: ['Check-balance'], tradeable: false, ex: 'Check in, check out. Forget to check out and it costs you dearly.' },
   ov_fiets: { name: 'OV-fiets', value: 0, ops: ['Ride'], tradeable: false, ex: 'A rented blue-and-yellow bike. Return it to an OV-fiets rack when you are done.' },
-  canal_map: { name: 'Canal map', value: 15, ops: ['Read'], ex: 'A folding map of Amsterdam. Impossible to fold back up.' },
-  stroopwafel_tin: { name: 'Stroopwafel tin', value: 250, ops: ['Open'], ex: 'A Delft-blue tin. Somehow there is always one stroopwafel left in it.' },
-  parkeerboete: { name: 'Parkeerboete', value: 0, ops: ['Pay'], tradeable: false, ex: 'A fine from the Gemeente for parking your bike in the wrong place. 50 coins.' },
+  canal_map: { name: 'Canal map', value: 15, ops: ['View'], ex: 'A folding map of Amsterdam. Impossible to fold back up.' },
+  stroopwafel_tin: { name: 'Stroopwafel tin', value: 250, ops: ['Take-one'], ex: 'A Delft-blue tin. Somehow there is always one stroopwafel left in it.' },
+  parkeerboete: { name: 'Parkeerboete', value: 0, ops: ['Pay-fine'], tradeable: false, ex: 'A fine from the Gemeente for parking your bike in the wrong place. 50 coins.' },
   amsterdams_wapen_1: cape(1, 'Amsterdams Wapen cape (easy)', { def: 2, att: 1, str: 1 }, 'Red, black and three white crosses. Proof you know your way around.'),
   amsterdams_wapen_2: cape(2, 'Amsterdams Wapen cape (medium)', { def: 4, att: 3, str: 3, rng: 2, mag: 2, pray: 1 }, 'Heldhaftig, Vastberaden, Barmhartig. The medium Amsterdam Diary cape.'),
   amsterdams_wapen_3: cape(3, 'Amsterdams Wapen cape (hard)', { def: 7, att: 5, str: 5, rng: 4, mag: 4, pray: 2 }, 'The full coat of arms, with the imperial crown. A true Amsterdammer.'),
