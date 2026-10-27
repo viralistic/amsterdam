@@ -34,7 +34,7 @@ export default function register(api) {
       westergas: { x: api.tile(52.3858, 4.8745).x, z: api.tile(52.3858, 4.8745).z + 2 }, gasboss: { x: 34104, z: 30016 },
       outpost: W.outposts.west.at, borderlands: api.tile(52.31689, 4.93745), industrial: api.tile(52.31779, 4.94479), central: api.tile(52.31060, 4.95433),
       metro: { x: W.metro.stations.arena.x + 2, z: W.metro.stations.arena.z + 2 }, lair: { x: W.lairEnt.x + 2, z: W.lairEnt.z + 2 }, colossus: { x: 35425, z: 30038 },
-      leviathan: api.tile(52.30750, 4.98800), arena: { x: parts.arena.gate.x, z: parts.arena.gate.z + 2 }, pit: { x: 35660, z: 30018 },
+      leviathan: api.tile(52.30750, 4.98900), ambush: { x: W.ambushes[0].at.x + 7, z: W.ambushes[0].at.z }, hatch: api.tile(52.31509, 4.94420), metro2: { x: W.metro.m2.start.x, z: W.metro.m2.start.z }, metro3: { x: W.metro.m3.start.x, z: W.metro.m3.start.z }, arena: { x: parts.arena.gate.x, z: parts.arena.gate.z + 2 }, pit: { x: 35660, z: 30018 },
       adam: { x: parts.agility.ground.x + 1, z: parts.agility.ground.z + 1 }, gracht: { x: parts.agility.gracht.x - 1, z: parts.agility.gracht.z }, market: api.tile(52.35567, 4.8930), zuidas: api.tile(52.3385, 4.8730),
     };
     // ::cbnpc Name_with_underscores teleports next to the nearest living NPC with that name

@@ -48,6 +48,7 @@ export function registerWilderness(api, U) {
 
   // ================= warning signs along the border
   const WARN = 'WARNING! Beyond this point is the Wilderness (a fictional game zone). Other players can attack you and you can lose your items. Fantasy monsters roam the ruins. Teleports fail above level 20. Bank first!';
+  for (const o of Object.values(outposts)) api.spawnObject({ type: 'cb_wild_sign', x: o.at.x + 4, z: o.at.z + 4, data: { text: WARN } });
   for (const [lat, lon] of [[52.31560, 4.93490], [52.31450, 4.93490], [52.31420, 4.93495], [52.32990, 4.96700], [52.32990, 4.96820], [52.32990, 4.95000], [52.32990, 4.98500], [52.30000, 4.93495]]) {
     const t = T(lat, lon);
     api.spawnObject({ type: 'cb_wild_sign', x: t.x, z: t.z, data: { text: WARN } });

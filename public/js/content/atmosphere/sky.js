@@ -55,40 +55,14 @@ function targetWeather() {
   return weatherAt(Date.now());
 }
 
-// ---- building windows: drive the building material's emissive colour at night. If the material has no glow
-// mask of its own, add one for the classic 4 m facade bay texture with a per-window hash so only some are lit.
+// ---- building windows: buildings.js owns the glow mask (matching its texture atlas) and which windows are lit;
+// atmosphere only drives the shared building material's `emissive` colour with the night level.
 let windowMat = null;
 export function patchBuildings(group) {
   if (windowMat) return;
   group.traverse(o => {
     const m = o.material;
-    if (windowMat || !o.isMesh || !m?.isMeshLambertMaterial || !m.map || !m.vertexColors || m.side !== THREE.DoubleSide) return;
-    windowMat = m;
-    // buildings.js ships its own window glow mask (matching its texture atlas): then we only drive `emissive`
-    if (m.emissiveMap) return;
-    const c = document.createElement('canvas');
-    c.width = c.height = 64;
-    const g = c.getContext('2d');
-    g.fillStyle = '#000'; g.fillRect(0, 0, 64, 64);
-    g.fillStyle = '#ffffff'; g.fillRect(22, 15, 20, 28);
-    g.fillStyle = '#000'; g.fillRect(31, 15, 2, 28); g.fillRect(22, 28, 20, 2);
-    const t = new THREE.CanvasTexture(c);
-    t.wrapS = t.wrapT = THREE.RepeatWrapping; t.magFilter = THREE.NearestFilter; t.colorSpace = THREE.SRGBColorSpace;
-    m.emissiveMap = t;
-    m.emissive = new THREE.Color('#000000');
-    m.onBeforeCompile = sh => {
-      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vAtmoW;')
-        .replace('#include <project_vertex>', '#include <project_vertex>\nvAtmoW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
-      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vAtmoW;')
-        .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
-        {
-          vec3 cellId = vec3(floor(vEmissiveMapUv), floor(vAtmoW.x / 29.0) + floor(vAtmoW.z / 31.0) * 17.0);
-          float lit = fract(sin(dot(cellId, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
-          totalEmissiveRadiance *= step(0.52, lit) * (0.75 + 0.5 * fract(lit * 7.0));
-        }`);
-    };
-    m.customProgramCacheKey = () => 'atmo-windows';
-    m.needsUpdate = true;
+    if (!windowMat && o.isMesh && m?.isMeshLambertMaterial && m.emissiveMap && m.vertexColors && m.side === THREE.DoubleSide) windowMat = m;
   });
 }
 

@@ -34,7 +34,7 @@ const css = `
 .eco-fade { position: fixed; inset: 0; z-index: 9; background: #000; display: flex; align-items: center; justify-content: center; text-align: center; color: #fff; font-size: 16px; pointer-events: none; animation: ecofade 1.7s ease-out forwards; }
 .eco-fade b { color: #ffcf2e; font: bold 26px Georgia, serif; text-shadow: 2px 2px 0 #000; }
 @keyframes ecofade { 0% { opacity: 1; } 55% { opacity: .95; } 100% { opacity: 0; } }
-#chat-lines .pm { color: #00ffff; } #chat-lines .pm b { color: #00ffff; }
+#chat-lines .pm { color: #0a7d96; } #chat-lines .pm b { color: #0a7d96; }
 .eco-th { color: var(--orange); text-align: center; margin-bottom: 6px; } .eco-th span { color: var(--yellow); }
 .eco-cat { display: flex; justify-content: space-between; padding: 2px 4px; cursor: pointer; color: #ff3030; font-size: 12px; } .eco-cat:hover { background: rgba(255,255,255,.08); }
 .eco-cat.some { color: #ffff00; } .eco-cat.full { color: #00ff00; } .eco-cat b { font-weight: normal; }
