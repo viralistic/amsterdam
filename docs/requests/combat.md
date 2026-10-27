@@ -12,8 +12,7 @@ All of these have workarounds in `server/systems/combat/util.js`; core support w
 3. **Forced attacks for specials.** `api.doAttack(a, d, { dmg?, maxHit?, chance?, style?, proj? })`, so a special can choose
    its damage and projectile. The workaround sets `npc._force` and applies it in an `onCombat` hook.
    The projectile can't be changed that way.
-4. **Temporary NPCs.** `api.removeNpc(npc)`, or spawn flags such as `{ temporary: true }`, for boss adds and ambushes. Right now
-   the pack keeps parked pools at x 37990 z 33990 and moves them in and out.
+4. **Temporary NPCs.** `api.removeNpc(npc)` now exists. The pack still uses parked pools (x 37990 z 33990) for boss adds and ambushes, because a pooled NPC keeps its id and respawns. It can switch over later.
 5. **Model override for one NPC** (sheared sheep). `npcEnt` reads `n.def.model`, so the pack copies `n.def` per NPC.
    Suggested: `m: n.model || n.def.model`.
 6. **Shops with a custom currency.** `api.shop(id, { currency: 'mark_of_grace' })` would replace the dialogue-based graceful
