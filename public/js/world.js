@@ -85,6 +85,7 @@ export class World {
     // hand-built landmarks replace whatever OpenStreetMap has at their spot
     d = { ...d, b: d.b.filter(([, , r]) => { let sx = 0, sz = 0; const n = r.length / 2 - 1; for (let i = 0; i < n * 2; i += 2) { sx += r[i]; sz += r[i + 1]; } return !insideLandmark(sx / n + x0, sz / n + z0, 8) && !insideZoo(sx / n + x0, sz / n + z0); }) };
     const marks = LANDMARK_MODELS.map(l => l.solidPoly.flatMap(([x, z]) => [x - x0, z - z0]));
+    const aprons = LANDMARK_MODELS.map(l => l.apron.flatMap(([x, z]) => [x - x0, z - z0]));
     // --- ground texture
     const cv = document.createElement('canvas');
     cv.width = cv.height = CHUNK * PX;
@@ -100,6 +101,8 @@ export class World {
     g.strokeStyle = COLORS.quay; g.lineWidth = 0.9;
     for (const rings of d.w) { g.beginPath(); for (const r of rings) ringPath(g, r); g.stroke(); }
     polys(d.ba, COLORS.bridge);
+    g.fillStyle = COLORS.paved;
+    for (const r of aprons) { g.beginPath(); ringPath(g, r); g.fill(); }
     g.lineCap = 'round'; g.lineJoin = 'round';
     const roads = [...d.r].sort((a, b) => (FOOT.has(a[0]) ? 0 : 1) - (FOOT.has(b[0]) ? 0 : 1));
     for (const [kind, bridge, , co] of roads) {
@@ -136,6 +139,7 @@ export class World {
     k.fillStyle = '#000';
     for (const rings of d.w) { k.beginPath(); for (const r of rings) ringPath(k, r); k.fill('evenodd'); }
     k.fillStyle = '#fff'; k.strokeStyle = '#fff'; k.lineCap = 'round';
+    for (const r of aprons) { k.beginPath(); ringPath(k, r); k.fill(); }
     for (const rings of d.ba) { k.beginPath(); for (const r of rings) ringPath(k, r); k.fill('evenodd'); }
     for (const [kind, bridge, , co] of d.r) if (bridge) { k.lineWidth = Math.max(2, ROAD_W[kind] || 3); linePath(k, co); k.stroke(); }
     k.fillStyle = '#000';

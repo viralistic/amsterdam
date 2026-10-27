@@ -44,6 +44,7 @@ export default function register(api) {
       if (!n) return api.msg(p, 'No such NPC.');
       api.teleport(p, n.x + 1, n.z, { inside: !!api.interiorAt(n.x, n.z) });
     });
+    api.command('cbdbg', p => api.msg(p, `action=${p.action ? p.action.wait + '/' + !!p.action.obj : 'none'} target=${p.target?.name || '-'} path=${p.path.length} pending=${!!p.pending}`));
     api.command('cbtele', (p, [k]) => {
       const t = places[k];
       if (!t) return api.msg(p, 'Places: ' + Object.keys(places).join(', '));

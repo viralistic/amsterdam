@@ -26,6 +26,8 @@ export const LANDMARK_MODELS = [
     ...l, x: t.x, z: t.z,
     footprint: [toWorld(-hw, -hd), toWorld(hw, -hd), toWorld(hw, hd), toWorld(-hw, hd)],
     solidPoly: [toWorld(sx0, sz0), toWorld(sx1, sz0), toWorld(sx1, sz1), toWorld(sx0, sz1)],
+    // paved ground around the building: OpenStreetMap water never shows under a landmark
+    apron: [toWorld(-hw - 4, -hd - 4), toWorld(hw + 4, -hd - 4), toWorld(hw + 4, hd + 4), toWorld(-hw - 4, hd + 4)],
   };
 });
 

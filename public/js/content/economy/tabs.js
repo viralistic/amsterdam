@@ -115,3 +115,9 @@ registry.msgHandlers.eco_friends = (m, ctx) => {
   renderFriends(el, ctx);
 };
 void fmt;
+
+// right-click options on other players
+registry.playerOptions.push((e, ctx) => [
+  { label: 'Add friend', fn: () => ctx.send({ t: 'eco_social', op: 'add', list: 'friends', name: e.n }) },
+  { label: 'Report', fn: () => openReport(ctx, e.n) },
+]);

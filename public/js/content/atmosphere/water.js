@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { atmo, trackChunk } from './common.js';
 import { CHUNK } from '/shared/geo.js';
+import { LANDMARK_MODELS } from '/shared/landmarks.js';
 
 const ROAD_W = { motorway: 12, trunk: 11, primary: 10, secondary: 9, tertiary: 7, unclassified: 6, residential: 6, living_street: 5, service: 4, pedestrian: 5, footway: 2.5, path: 2, cycleway: 2.5, steps: 2.5, track: 3 };
 const lin = s => new THREE.Color(s);
@@ -83,6 +84,7 @@ export function waterDecorator(chunk, d, group, T, ctx) {
   for (const rings of d.w) { g.beginPath(); for (const r of rings) ringPath(g, r); g.stroke(); }
   g.fillStyle = '#000';
   for (const rings of d.ba || []) { g.beginPath(); for (const r of rings) ringPath(g, r); g.fill('evenodd'); }
+  for (const l of LANDMARK_MODELS) { g.beginPath(); ringPath(g, l.apron.flatMap(([x, z]) => [x - x0, z - z0])); g.fill(); }
   g.lineCap = 'round';
   for (const [kind, bridge, , co] of d.r || []) {
     if (!bridge) continue;

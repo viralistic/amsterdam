@@ -20,7 +20,7 @@ export default function annefrank(api, lib) {
     ],
     others: [
       { npc: 'Eight people hid in the Annex: Otto and Edith Frank and their daughters Margot and Anne; Hermann and Auguste van Pels and their son Peter; and Fritz Pfeffer.' },
-      { npc: 'They survived thanks to helpers who risked their own lives: Miep Gies, Jan Gies, Johannes Kleiman, Victor Kugler, Bep Voskuijl and her father Johan Voskuijl. They brought food, news and books.' },
+      { npc: 'They could stay hidden for more than two years thanks to helpers who risked their own lives: Miep Gies, Jan Gies, Johannes Kleiman, Victor Kugler, Bep Voskuijl and her father Johan Voskuijl. They brought food, news and books.' },
       { npc: 'Of the eight people in hiding, only Otto Frank survived the war.' },
       { goto: 'more' },
     ],
