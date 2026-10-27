@@ -11,6 +11,9 @@ export const LANDMARK_MODELS = [
   { id: 'bijenkorf', name: 'De Bijenkorf', ex: 'The beehive. A department store on the Dam since 1914.', lat: 52.37356, lon: 4.89447, w: 55, d: 70, rot: facing(198) },
   // Ranged guild at Club Kaliber, Jordaan. Only the tower is solid; the courtyard and target range are walkable.
   { id: 'rangedguild', name: 'Kaliber Ranged Guild', ex: 'The finest archers in the Jordaan train here.', lat: 52.3765, lon: 4.8830, w: 50, d: 44, rot: facing(180), solid: [-21, -3, -15, 3] },
+  { id: 'centraal', name: 'Amsterdam Centraal', ex: 'The grand station of 1889, by Pierre Cuypers. Every adventure starts here.', lat: 52.37895, lon: 4.90030, w: 280, d: 40, rot: facing(180) },
+  { id: 'westerkerk', name: 'Westerkerk', ex: 'Its 85 metre tower wears the imperial crown. Rembrandt is buried somewhere inside.', lat: 52.37452, lon: 4.88395, w: 58, d: 30, rot: facing(180) },
+  { id: 'rijksmuseum', name: 'Rijksmuseum', ex: 'Home of the Night Watch. You can cycle right through the middle of it.', lat: 52.36000, lon: 4.88520, w: 135, d: 80, rot: facing(0) },
   { id: 'oudekerk', name: 'Oude Kerk', ex: "Amsterdam's oldest building, consecrated in 1306. Its tower is 67 metres tall.", lat: 52.37412, lon: 4.89804, w: 82, d: 46, rot: facing(168) },
 ].map(l => {
   const t = toTile(l.lat, l.lon);
