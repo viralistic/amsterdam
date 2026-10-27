@@ -9,7 +9,7 @@
 // Everything is merged into a few vertex-coloured BufferGeometries per chunk (4 x 4 tiles for frustum culling)
 // sharing one alpha-tested texture atlas (public/js/buildings/atlas.js).
 import * as THREE from 'three';
-import { atlasTexture, cell, band, C, WHITE_UV } from './buildings/atlas.js';
+import { atlasTexture, atlasMask, cell, band, C, DARK, WHITE_UV } from './buildings/atlas.js';
 
 const TILE = 64; // metres per geometry tile
 
@@ -20,7 +20,7 @@ const mul = (c, f) => [c[0] * f, c[1] * f, c[2] * f];
 const WHITE = [1, 1, 1];
 const pick = (rng, list) => { let t = 0; for (const [, w] of list) t += w; let r = rng() * t; for (const [v, w] of list) if ((r -= w) <= 0) return v; return list[0][0]; };
 
-const BRICK = [['#6a3324', 3], ['#5c3a2b', 3], ['#7b3628', 2], ['#2d2522', 1.6], ['#3b2a23', 2], ['#874a30', 1.2], ['#e7e2d4', 1.1], ['#d6c9a6', 0.8], ['#bfa77b', 0.6], ['#7a8486', 0.35], ['#33433a', 0.3], ['#5a2622', 0.4]];
+const BRICK = [['#6a3324', 3], ['#5c3a2b', 3], ['#7b3628', 2], ['#342a26', 1.6], ['#3b2a23', 2], ['#874a30', 1.2], ['#e7e2d4', 1.1], ['#d6c9a6', 0.8], ['#bfa77b', 0.6], ['#7a8486', 0.35], ['#33433a', 0.3], ['#5a2622', 0.4]];
 const LIGHT = new Set(['#e7e2d4', '#d6c9a6', '#bfa77b', '#7a8486']);
 const ROOF = [['#36383d', 3], ['#2b2d31', 2], ['#8a3b26', 1.4], ['#6e3223', 1.2], ['#4a3a30', 0.8]];
 const TRIM = [['#f4f2ea', 8], ['#e9dfc4', 2]];
@@ -158,7 +158,13 @@ function rayExit(xs, zs, px, pz, dx, dz) {
 // ---------------------------------------------------------------- entry points
 let material = null;
 export function buildBuildings(list, x0, z0) {
-  material ??= new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide, map: atlasTexture(), alphaTest: 0.5 });
+  if (!material) {
+    material = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide, map: atlasTexture(), alphaTest: 0.5, emissive: 0x000000 });
+    // Night lighting (content/atmosphere) drives `emissive`; the glow mask must stay the one that matches this atlas,
+    // so a mask written for another texture layout is ignored here.
+    const mask = atlasMask();
+    Object.defineProperty(material, 'emissiveMap', { get: () => mask, set: () => {}, configurable: true });
+  }
   const group = new THREE.Group();
   for (const g of buildGeometries(list, x0, z0)) {
     const mesh = new THREE.Mesh(g, material);
@@ -288,7 +294,7 @@ function canalHouse(m, ctx, b, self, front, rng) {
   const { F, w, rear } = front;
   const nx = F.nx, nz = F.nz;
   // ---- style
-  const gable = b.h < 7 ? (w < 7 ? 'point' : 'cornice') : pick(rng, w < 4.8 ? GABLES_NARROW : w < 7.8 ? GABLES_MID : w <= 10.5 ? GABLES_WIDE : [['cornice', 1]]);
+  const gable = b.h < 7 ? (w < 7 ? 'point' : 'cornice') : pick(rng, w < 4.8 ? GABLES_NARROW : w < 8.6 ? GABLES_MID : w <= 10.5 ? GABLES_WIDE : [['cornice', 1]]);
   const wallHex = pick(rng, BRICK), light = LIGHT.has(wallHex);
   const wall = mul(col(wallHex), 0.93 + rng() * 0.14);
   const sideWall = mul(wall, 0.86);
@@ -312,6 +318,8 @@ function canalHouse(m, ctx, b, self, front, rng) {
   const nc = w < 4.3 ? 2 : w < 7.2 ? 3 : w < 9.6 ? 4 : 5, bw = w / nc;
   const ww = clamp(bw * 0.5, 0.75, 1.25);
   const sc = i => (i + 0.5) * bw;
+  const glow = rng() * 0.7 + 0.15; // share of this house's windows lit at night
+  const win = k => cell(DARK[k] !== undefined && rng() > glow ? DARK[k] : k);
 
   // ---- body walls (front wall up to the eaves; sides and rear)
   const [rlx, rlz, rrx, rrz] = rear;
@@ -342,7 +350,7 @@ function canalHouse(m, ctx, b, self, front, rng) {
     const shopC = col(pick(rng, SHOP));
     const ds = sc(doorBay), dw = Math.min(1.1, bw * 0.75);
     rect(m, F, ds - dw / 2, ds + dw / 2, 0, 2.6, 0.05, shopC, cell(C.SHOPDOOR));
-    for (let i = 0; i < nc; i++) if (i !== doorBay) rect(m, F, i * bw + 0.08, (i + 1) * bw - 0.08, 0.15, 3.0, 0.05, shopC, cell(C.SHOP));
+    for (let i = 0; i < nc; i++) if (i !== doorBay) rect(m, F, i * bw + 0.08, (i + 1) * bw - 0.08, 0.15, 3.0, 0.05, shopC, win(C.SHOP));
     rect(m, F, 0.12, w - 0.12, 3.05, 3.6, 0.07, col(pick(rng, SHOP)), cell(C.SIGN));
     if (rng() < 0.6) { // awning over the shop windows
       const s0 = doorBay === 0 ? bw + 0.05 : 0.1, s1 = doorBay === nc - 1 ? w - bw - 0.05 : w - 0.1;
@@ -360,16 +368,17 @@ function canalHouse(m, ctx, b, self, front, rng) {
     if (raised) { // stoop: landing and a lower step
       const sw = Math.min(bw * 0.95, dw + 0.5) / 2;
       box(m, F, ds - sw, ds + sw, 0, g0, 0, 0.75, col(STONE));
-      box(m, F, ds - sw, ds + sw, 0, g0 * 0.5, 0.75, 1.35, col(STONE));
+      rect(m, F, ds - sw, ds + sw, 0, g0 * 0.5, 1.35, col(STONE)); // lower step: front and tread only
+      m.quad(F.at(ds - sw, g0 * 0.5, 1.35), F.at(ds + sw, g0 * 0.5, 1.35), F.at(ds + sw, g0 * 0.5, 0.75), F.at(ds - sw, g0 * 0.5, 0.75), mul(col(STONE), 1.08));
     }
     const wy0 = g0 + (raised ? 0.45 : 0.85), wy1 = gTop - 0.35;
     for (let i = 0; i < nc; i++) {
       if (i === doorBay) continue;
       if (wy1 - wy0 > 0.8) {
-        if (shutters) { const sw2 = Math.min(ww * 2, bw * 0.98) / 2; rect(m, F, sc(i) - sw2, sc(i) + sw2, wy0, wy1, 0.05, WHITE, cell(shutters)); }
-        else rect(m, F, sc(i) - ww / 2, sc(i) + ww / 2, wy0, wy1, 0.04, trim, cell(winCell));
+        if (shutters) { const sw2 = Math.min(ww * 2, bw * 0.98) / 2; rect(m, F, sc(i) - sw2, sc(i) + sw2, wy0, wy1, 0.05, WHITE, win(shutters)); }
+        else rect(m, F, sc(i) - ww / 2, sc(i) + ww / 2, wy0, wy1, 0.04, trim, win(winCell));
       }
-      if (raised) rect(m, F, sc(i) - ww * 0.4, sc(i) + ww * 0.4, 0.15, 0.82, 0.04, WHITE, cell(C.BASEMENT));
+      if (raised) rect(m, F, sc(i) - ww * 0.4, sc(i) + ww * 0.4, 0.15, 0.82, 0.04, WHITE, win(C.BASEMENT));
     }
   }
   if (nUp && rng() < 0.45) rect(m, F, 0, w, gTop - 0.08, gTop + 0.08, 0.04, stone); // string course
@@ -378,7 +387,7 @@ function canalHouse(m, ctx, b, self, front, rng) {
     const base = gTop + k * sH, top = k === nUp - 1 && nUp >= 3;
     const wh = clamp(sH * (top ? 0.52 : 0.6), 1.1, 2.1), y0 = base + Math.max(0.4, (sH - wh) * 0.42);
     const wk = top ? ww * 0.92 : ww;
-    for (let i = 0; i < nc; i++) rect(m, F, sc(i) - wk / 2, sc(i) + wk / 2, y0, y0 + wh, 0.04, trim, cell(winCell));
+    for (let i = 0; i < nc; i++) rect(m, F, sc(i) - wk / 2, sc(i) + wk / 2, y0, y0 + wh, 0.04, trim, win(winCell));
   }
 
   // ---- gable / cornice and roof
@@ -422,14 +431,14 @@ function canalHouse(m, ctx, b, self, front, rng) {
       const last = ri === rows.length - 1 && (rows.length > 1 || r.avail < 1.6);
       if (r.avail >= 2.3 && !(last && hoist)) {
         const gw = Math.min(ww, r.avail * 0.45);
-        for (const sg of [-1, 1]) rect(m, F, w / 2 + sg * r.avail * 0.5 - gw / 2, w / 2 + sg * r.avail * 0.5 + gw / 2, He + r.y, He + r.top, 0.04, trim, cell(winCell));
+        for (const sg of [-1, 1]) rect(m, F, w / 2 + sg * r.avail * 0.5 - gw / 2, w / 2 + sg * r.avail * 0.5 + gw / 2, He + r.y, He + r.top, 0.04, trim, win(winCell));
       } else if (last && hoist) {
         const gw = Math.min(1.0, r.avail * 2 - 0.1);
         rect(m, F, w / 2 - gw / 2, w / 2 + gw / 2, He + r.y, He + r.top, 0.04, doorC, cell(C.HATCH));
         if (r.top + 0.45 < G.top && G.halfWidth(r.top + 0.12, r.top + 0.4) > 0.25) beam = He + r.top + 0.12;
       } else {
         const gw = Math.min(ww, r.avail * 2 - 0.1);
-        rect(m, F, w / 2 - gw / 2, w / 2 + gw / 2, He + r.y, He + r.top, 0.04, trim, cell(gable === 'neck' && ri === 1 ? C.OCULUS : winCell));
+        rect(m, F, w / 2 - gw / 2, w / 2 + gw / 2, He + r.y, He + r.top, 0.04, trim, win(gable === 'neck' && ri === 1 ? C.OCULUS : winCell));
       }
     });
     if (hoist && !beam && G.top > 2) beam = He + G.top - 0.75;
@@ -454,17 +463,19 @@ function canalHouse(m, ctx, b, self, front, rng) {
   }
 
   // ---- rear facade and exposed side walls
-  const rnx = -nx, rnz = -nz;
+  // rear wall normal from its own edge (the rear of a quadrilateral footprint need not be parallel to the front)
+  let rnx = -nx, rnz = -nz;
+  { const ex = rlx - rrx, ez = rlz - rrz, l = Math.hypot(ex, ez) || 1; rnx = ez / l; rnz = -ex / l; if (rnx * nx + rnz * nz > 0) { rnx = -rnx; rnz = -rnz; } }
   const rearOpen = (() => { const mx = (rlx + rrx) / 2 + rnx * 1.5, mz = (rlz + rrz) / 2 + rnz * 1.5; return ctx.hit(mx, mz, self) < 0 && !pip(b.xs, b.zs, mx, mz); })();
   if (rearOpen) {
     const Fr = frameFor(rrx, rrz, rlx, rlz, rnx, rnz), wr = Math.hypot(rlx - rrx, rlz - rrz);
-    const ncr = Math.max(2, nc - 1), bwr = wr / ncr, wwr = clamp(bwr * 0.45, 0.75, 1.2);
-    for (let k = 0; k <= nUp; k++) {
+    const ncr = nc >= 5 ? 3 : 2, bwr = wr / ncr, wwr = clamp(bwr * 0.45, 0.75, 1.2);
+    for (let k = nUp ? 1 : 0; k <= nUp; k++) {
       const base = k === 0 ? g0 : gTop + (k - 1) * sH, hh = k === 0 ? gTop - g0 : sH;
       const wh = clamp(hh * 0.55, 1.1, 2.0), y0 = base + Math.max(0.5, (hh - wh) * 0.45);
-      for (let i = 0; i < ncr; i++) rect(m, Fr, (i + 0.5) * bwr - wwr / 2, (i + 0.5) * bwr + wwr / 2, y0, y0 + wh, 0.04, trim, cell(C.PLAIN));
+      for (let i = 0; i < ncr; i++) rect(m, Fr, (i + 0.5) * bwr - wwr / 2, (i + 0.5) * bwr + wwr / 2, y0, y0 + wh, 0.04, trim, win(C.PLAIN));
     }
-    if (R > 2.4) rect(m, Fr, wr / 2 - 0.45, wr / 2 + 0.45, He + 0.4, He + Math.min(1.5, R * 0.45), 0.04, trim, cell(C.GWIN));
+    if (R > 2.4) rect(m, Fr, wr / 2 - 0.45, wr / 2 + 0.45, He + 0.4, He + Math.min(1.5, R * 0.45), 0.04, trim, win(C.GWIN));
   }
   for (const [sx, sz, tx, tz, sg] of [[F.ox, F.oz, rlx, rlz, -1], [F.ox + F.ux * w, F.oz + F.uz * w, rrx, rrz, 1]]) {
     const ex = tx - sx, ez = tz - sz, L = Math.hypot(ex, ez);
@@ -476,7 +487,7 @@ function canalHouse(m, ctx, b, self, front, rng) {
     const Fs = frameFor(sx, sz, tx, tz, onx, onz), nw = Math.min(5, Math.floor(L / 3.4)), bws = L / nw;
     for (let k = 1; k <= nUp; k++) {
       const base = gTop + (k - 1) * sH, wh = clamp(sH * 0.55, 1.1, 1.9), y0 = base + Math.max(0.45, (sH - wh) * 0.45);
-      for (let i = 0; i < nw; i++) rect(m, Fs, (i + 0.5) * bws - 0.5, (i + 0.5) * bws + 0.5, y0, y0 + wh, 0.04, trim, cell(C.PLAIN));
+      for (let i = 0; i < nw; i++) rect(m, Fs, (i + 0.5) * bws - 0.5, (i + 0.5) * bws + 0.5, y0, y0 + wh, 0.04, trim, win(C.PLAIN));
     }
   }
 }
@@ -499,14 +510,14 @@ function gableShape(type, w, rng) {
   } else if (type === 'neck') {
     const elev = w >= 7.2 && rng() < 0.7 ? 2.8 : 0;
     const nw = clamp(w * 0.44, 1.7, 3.1), a = hw - nw / 2;
-    const hs = elev + clamp(w * 0.3, 1.3, 2.3), hn = hs + clamp(1.0 + w * 0.15, 1.6, 2.5);
+    const hs = elev + clamp(w * 0.24, 1.1, 1.9), hn = hs + clamp(1.2 + w * 0.16, 1.8, 2.7);
     top = hn + 1.0;
     if (elev) P(-hw, 0, 0);
-    for (const th of [0, 25, 50, 72]) { const r = th * Math.PI / 180; P(-nw / 2 - a * Math.cos(r), elev + (hs - elev) * Math.sin(r), 1); }
+    for (const th of [0, 30, 62]) { const r = th * Math.PI / 180; P(-nw / 2 - a * Math.cos(r), elev + (hs - elev) * Math.sin(r), 1); }
     P(-nw / 2, hs, 0); P(-nw / 2, hn, 1); P(-nw / 2 - 0.18, hn, 1); P(-nw / 2 - 0.18, hn + 0.22, 1);
     if (elev) polys.push({ pts: [[-hw, 0], [hw, 0], [hw, elev], [-hw, elev]] });
     polys.push({ pts: [[-nw / 2, elev], [nw / 2, elev], [nw / 2, hn], [-nw / 2, hn]] });
-    const sh = [[-hw, elev]]; for (const th of [25, 50, 72]) { const r = th * Math.PI / 180; sh.push([-nw / 2 - a * Math.cos(r), elev + (hs - elev) * Math.sin(r)]); }
+    const sh = [[-hw, elev]]; for (const th of [30, 62]) { const r = th * Math.PI / 180; sh.push([-nw / 2 - a * Math.cos(r), elev + (hs - elev) * Math.sin(r)]); }
     sh.push([-nw / 2, hs], [-nw / 2, elev]);
     polys.push({ pts: sh, trim: 1 }, { pts: sh.map(([x, y]) => [-x, y]), trim: 1 });
     polys.push({ pts: [[-nw / 2 - 0.18, hn], [nw / 2 + 0.18, hn], [nw / 2 + 0.18, hn + 0.22], [0, top], [-nw / 2 - 0.18, hn + 0.22]], trim: 1 });

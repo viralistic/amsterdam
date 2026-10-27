@@ -27,16 +27,29 @@ export const WHITE_UV = [(wc[0] + wc[2]) / 2, (wc[1] + wc[3]) / 2];
 
 const GLASS = '#1d2530', GLASS2 = '#33414f', FRAME = '#f6f4ee', STONE = '#dcd6c8';
 
-let tex = null;
+// Unlit copies of the glazed cells (identical colours, dark in the night mask): DARK[k] is the unlit twin of cell k.
+const GLAZED = [C.SASH, C.PANES, C.PLAIN, C.ARCH, C.SHUT_G, C.SHUT_R, C.SHOP, C.GWIN, C.BASEMENT, C.OCULUS, C.SHOPDOOR];
+export const DARK = {};
+GLAZED.forEach((k, i) => { DARK[k] = 20 + i; });
+
+let tex = null, maskTex = null;
+// Night mask for the atlas (emissiveMap): white where window glass glows after dark.
+export function atlasMask() { atlasTexture(); return maskTex; }
 export function atlasTexture() {
   if (tex) return tex;
   const cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
   const g = cv.getContext('2d');
   g.clearRect(0, 0, W, H);
+  const mv = document.createElement('canvas');
+  mv.width = W; mv.height = H;
+  const mg = mv.getContext('2d');
+  mg.fillStyle = '#000'; mg.fillRect(0, 0, W, H);
+  let lit = true;
   const R = (c, x, y, w, h) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
   // glass with a light diagonal reflection streak
   const glass = (x, y, w, h) => {
+    if (lit) { mg.fillStyle = '#fff'; mg.fillRect(x, y, w, h); }
     R(GLASS, x, y, w, h);
     g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip();
     g.fillStyle = GLASS2; g.beginPath();
@@ -57,6 +70,7 @@ export function atlasTexture() {
   // ---- band A: classic block storey, 4 bays of 128 px (3.2 m)
   for (let b = 0; b < 4; b++) {
     const x = b * 128, y = BAND.A[0];
+    lit = b !== 1;
     R(STONE, x + 34, y + 8, 60, 7); // lintel
     window(x + 38, y + 15, 52, 82, 2, 1, 5, FRAME, 0.32);
     R(STONE, x + 33, y + 97, 62, 6); // sill
@@ -64,6 +78,7 @@ export function atlasTexture() {
   // ---- band A2: arched small-pane windows with keystone
   for (let b = 0; b < 4; b++) {
     const x = b * 128 + 38, y = BAND.A2[0] + 12, w = 52, h = 86;
+    lit = b === 1 || b === 2;
     g.save(); g.beginPath(); g.moveTo(x - 4, y + h); g.lineTo(x - 4, y + 26); g.arc(x + w / 2, y + 26, w / 2 + 4, Math.PI, 0); g.lineTo(x + w + 4, y + h); g.closePath(); g.clip();
     R(STONE, x - 4, y - 6, w + 8, h + 6);
     g.restore();
@@ -77,12 +92,13 @@ export function atlasTexture() {
   {
     const y = BAND.B[0];
     R('#45494d', 0, y + 22, W, 76);
-    for (let x = 0; x < W; x += 64) glass(x + 4, y + 26, 56, 68);
+    for (let x = 0; x < W; x += 64) { lit = [1, 1, 0, 1, 0, 0, 1, 1][x / 64] === 1; glass(x + 4, y + 26, 56, 68); }
     R('#8a8f94', 0, y + 98, W, 4); // sill line
   }
   // ---- band G: shop-front ground storey (160 px = 4 m), frames white (tinted per building)
   for (let b = 0; b < 4; b++) {
     const x = b * 128, y = BAND.G[0];
+    lit = b !== 2;
     R(FRAME, x + 4, y + 10, 120, 150);
     R('#d8d8d8', x + 8, y + 14, 112, 24); // fascia (sign band)
     for (let k = 0; k < 5; k++) R('#9a9a9a', x + 22 + k * 18, y + 22, 10, 8); // "letters"
@@ -101,8 +117,15 @@ export function atlasTexture() {
   }
 
   // ---- cells
+  lit = true;
   const at = k => [(k % 8) * CW + 2, CELL_Y + Math.floor(k / 8) * CH + 2, CW - 4, CH - 4];
-  const cellDo = (k, fn) => { const [x, y, w, h] = at(k); g.save(); fn(x, y, w, h); g.restore(); };
+  const cellDo = (k, fn) => {
+    for (const kk of DARK[k] ? [k, DARK[k]] : [k]) {
+      lit = kk === k;
+      const [x, y, w, h] = at(kk); g.save(); fn(x, y, w, h); g.restore();
+    }
+    lit = true;
+  };
   cellDo(C.WHITE, (x, y, w, h) => R('#ffffff', x - 2, y - 2, w + 4, h + 4));
   cellDo(C.SASH, (x, y, w, h) => { window(x, y, w, h - 6, 2, 1, 6, FRAME, 0.34); R(STONE, x, y + h - 6, w, 6); });
   cellDo(C.PANES, (x, y, w, h) => { window(x, y, w, h - 6, 3, 4, 6, FRAME); R(FRAME, x, Math.round(y + (h - 6) / 2 - 2), w, 5); R(STONE, x, y + h - 6, w, 6); });
@@ -176,5 +199,15 @@ export function atlasTexture() {
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.ClampToEdgeWrapping;
   tex.anisotropy = 4;
+  // keep the mask only on dark glass texels (not on the bars and frames painted over it)
+  const ci = g.getImageData(0, 0, W, H).data, md = mg.getImageData(0, 0, W, H);
+  for (let i = 0; i < ci.length; i += 4) if (md.data[i] && (ci[i + 3] < 128 || ci[i] + ci[i + 1] + ci[i + 2] > 300)) md.data[i] = md.data[i + 1] = md.data[i + 2] = 0;
+  mg.putImageData(md, 0, 0);
+  maskTex = new THREE.CanvasTexture(mv);
+  maskTex.colorSpace = THREE.SRGBColorSpace;
+  maskTex.magFilter = THREE.NearestFilter;
+  maskTex.minFilter = THREE.LinearMipmapLinearFilter;
+  maskTex.wrapS = THREE.RepeatWrapping;
+  maskTex.wrapT = THREE.ClampToEdgeWrapping;
   return tex;
 }

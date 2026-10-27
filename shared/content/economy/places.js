@@ -22,14 +22,14 @@ export const METRO_STOPS = [
   { id: 'vijzelgracht', name: 'Vijzelgracht', lat: 52.3609, lon: 4.8907 },
   { id: 'depijp', name: 'De Pijp', lat: 52.3543, lon: 4.8925 },
   { id: 'europaplein', name: 'Europaplein', lat: 52.3427, lon: 4.8925 },
-  { id: 'zuid', name: 'Station Zuid', lat: 52.3387, lon: 4.8738 },
+  { id: 'zuid', name: 'Station Zuid', lat: 52.33915, lon: 4.8734 },
   { id: 'nieuwmarkt', name: 'Nieuwmarkt', lat: 52.3722, lon: 4.9010 },
   { id: 'waterlooplein', name: 'Waterlooplein', lat: 52.3672, lon: 4.9031 },
   { id: 'weesperplein', name: 'Weesperplein', lat: 52.3613, lon: 4.9077 },
-  { id: 'amstel', name: 'Amstel', lat: 52.3463, lon: 4.9184 },
-  { id: 'sloterdijk', name: 'Sloterdijk', lat: 52.3886, lon: 4.8390 },
-  { id: 'rai', name: 'RAI', lat: 52.3371, lon: 4.8908 },
-  { id: 'bijlmer', name: 'Bijlmer ArenA', lat: 52.3120, lon: 4.9480, wild: true },
+  { id: 'amstel', name: 'Amstel', lat: 52.3468, lon: 4.9182 },
+  { id: 'sloterdijk', name: 'Sloterdijk', lat: 52.38895, lon: 4.8386 },
+  { id: 'rai', name: 'RAI', lat: 52.33755, lon: 4.8903 },
+  { id: 'bijlmer', name: 'Bijlmer ArenA', lat: 52.3124, lon: 4.9475, wild: true },
 ];
 
 export const METRO_LINES = [
@@ -58,11 +58,11 @@ export const BANKS = [
 ];
 
 export const OVFIETS = [
-  { at: 'centraal', lat: 52.37830, lon: 4.9022 },
-  { at: 'zuid', lat: 52.33865, lon: 4.8720 },
-  { at: 'amstel', lat: 52.34640, lon: 4.9168 },
-  { at: 'sloterdijk', lat: 52.38890, lon: 4.8392 },
-  { at: 'rai', lat: 52.33715, lon: 4.8888 },
+  { at: 'centraal', lat: 52.37845, lon: 4.9001 },
+  { at: 'zuid', lat: 52.33865, lon: 4.8727 },
+  { at: 'amstel', lat: 52.34635, lon: 4.9174 },
+  { at: 'sloterdijk', lat: 52.38855, lon: 4.8383 },
+  { at: 'rai', lat: 52.33705, lon: 4.8896 },
 ];
 
 export const DEPOSIT_BOX = { lat: 52.37845, lon: 4.8994 };

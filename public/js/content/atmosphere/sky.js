@@ -5,8 +5,8 @@ import { atmo, settings, clamp, smooth, lerp, hash, worldDate, sunPosition, amsP
 
 const C = (s) => new THREE.Color(s);
 const PAL = {
-  skyDay: C('#dfe8f0'), skyNight: C('#4a5c8e'), skyDusk: C('#ffc898'),
-  gndDay: C('#5a5040'), gndNight: C('#1c1c2a'),
+  skyDay: C('#dfe8f0'), skyNight: C('#5c6fa4'), skyDusk: C('#ffc898'),
+  gndDay: C('#5a5040'), gndNight: C('#2c2c3c'),
   sunDay: C('#fff4e0'), sunDusk: C('#ff9a55'), moon: C('#a8bce8'),
   fogDay: C('#000000'), fogNight: C('#02040a'), fogDusk: C('#140a10'),
   mistDay: C('#7a8088'), mistNight: C('#191d24'), rainDay: C('#232a33'), rainNight: C('#07090d'),
@@ -112,6 +112,8 @@ export function skyFrame(now, ctx) {
   const k = 1 - Math.exp(-dtw / (atmo.forceWeather ? 1.5 : 12));
   S.weather.rain = lerp(S.weather.rain, tw.rain, k);
   S.weather.mist = lerp(S.weather.mist, tw.mist, k);
+  if (S.weather.rain < 1e-4) S.weather.rain = 0;
+  if (S.weather.mist < 1e-4) S.weather.mist = 0;
   L.rain = S.weather.rain; L.mist = S.weather.mist; L.weather = tw.kind;
 
   const bright = settings.brightness || 1;
@@ -125,12 +127,12 @@ export function skyFrame(now, ctx) {
     if (S.hemi) {
       S.hemi.color.copy(PAL.skyNight).lerp(PAL.skyDay, day).lerp(PAL.skyDusk, dusk * 0.35);
       S.hemi.groundColor.copy(PAL.gndNight).lerp(PAL.gndDay, day);
-      S.hemi.intensity = lerp(0.62, S.base.hemi, day) * (1 - wet * 0.5) * bright;
+      S.hemi.intensity = lerp(0.85, S.base.hemi, day) * (1 - wet * 0.5) * bright;
     }
     if (S.sun) {
       const sunUp = smooth(-3, 6, elev);
       S.sun.color.copy(PAL.moon).lerp(PAL.sunDay, sunUp).lerp(PAL.sunDusk, dusk * 0.6);
-      S.sun.intensity = lerp(0.42, S.base.sun, sunUp) * (1 - wet * 0.75) * bright;
+      S.sun.intensity = lerp(0.5, S.base.sun, sunUp) * (1 - wet * 0.75) * bright;
       // light from the sun's real direction (kept a bit above the horizon so faces stay readable); a fixed moon at night
       const e = (sunUp > 0.5 ? Math.max(14, elev) : 50) * Math.PI / 180, a = (sunUp > 0.5 ? sp.az : 200) * Math.PI / 180;
       S.sun.position.set(Math.sin(a) * Math.cos(e) * 100, Math.sin(e) * 100, -Math.cos(a) * Math.cos(e) * 100);
