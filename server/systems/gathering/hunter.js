@@ -51,7 +51,7 @@ export function setupHunter(api) {
         if (tick - trap.since < 6 || Math.random() >= CATCH_RATE) continue;
         const best = pool[pool.length - 1];
         const c = Math.random() < 0.6 ? best : pool[Math.floor(Math.random() * pool.length)];
-        const chance = Math.min(0.95, 0.55 + (trap.lvl - c.level) * 0.02);
+        const chance = Math.min(0.95, 0.65 + (trap.lvl - c.level) * 0.02);
         trap.creature = c;
         place(trap, Math.random() < chance ? 'caught' : 'failed');
       } else if (tick - trap.since > COLLAPSE) collapse(trap);

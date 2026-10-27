@@ -306,7 +306,7 @@ function canalHouse(m, ctx, b, self, front, rng) {
   const low = b.h < 7;
   const ground = low ? 'flat' : pick(rng, [['raised', 5.5], ['shop', 2.6], ['flat', 1.6]]);
   const raised = ground === 'raised';
-  const shutters = ground !== 'shop' && rng() < 0.22 ? (rng() < 0.6 ? C.SHUT_G : C.SHUT_R) : 0;
+  const shutters = ground !== 'shop' && rng() < 0.17 ? (rng() < 0.7 ? C.SHUT_G : C.SHUT_R) : 0;
 
   // ---- storeys
   const He = clamp(b.h, 3.2, 40);

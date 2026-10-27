@@ -50,7 +50,7 @@ void main() {
   float s = h21(id + floor(t * 0.7 + h21(id) * 5.0));
   float thr = mix(0.99, 0.95, uRain);
   if (s > thr) col = mix(col, uSpark, 0.3 * max(uDay, 0.3));
-  col *= mix(0.16, 1.0, uDay);
+  col *= mix(0.12, 1.0, uDay);
   // warm lamplight caught on the ripples at night (colours are linear here, so keep it small)
   col += vec3(0.014, 0.008, 0.002) * uLamp * band;
   gl_FragColor = vec4(col, 1.0);

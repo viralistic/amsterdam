@@ -288,3 +288,15 @@ function linePath(g, co) {
 }
 
 // Per-tile b
+function tileNoise(g, size, x0, z0) {
+  const img = g.getImageData(0, 0, size, size);
+  const d = img.data;
+  for (let ty = 0; ty < CHUNK; ty++) for (let tx = 0; tx < CHUNK; tx++) {
+    const f = 0.94 + hash(x0 + tx, z0 + ty) * 0.12;
+    for (let py = 0; py < PX; py++) for (let pxx = 0; pxx < PX; pxx++) {
+      const i = ((ty * PX + py) * size + tx * PX + pxx) * 4;
+      d[i] *= f; d[i + 1] *= f; d[i + 2] *= f;
+    }
+  }
+  g.putImageData(img, 0, 0);
+}

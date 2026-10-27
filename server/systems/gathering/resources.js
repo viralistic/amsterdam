@@ -154,6 +154,24 @@ export function setupResources(api, G) {
     }
   });
 
+  // ------------------------------------------------------------------ bird's nests: seeds, or rarely a ring
+  const NEST_SEEDS = [[30, 'potato_seed', 3, 8], [25, 'onion_seed', 3, 6], [20, 'cabbage_seed', 3, 6], [18, 'guam_seed', 1, 2], [12, 'marrentill_seed', 1, 2],
+    [9, 'tarromin_seed', 1, 2], [6, 'harralander_seed', 1, 1], [4, 'ranarr_seed', 1, 1]];
+  api.itemOp('Search', (p, slot, item) => {
+    if (item.id !== 'bird_nest') return;
+    const rings = ['sapphire_ring', 'gold_ring'].filter(id => ITEMS[id]);
+    let reward;
+    if (rings.length && Math.random() < 0.05) reward = [rings[Math.random() < 0.3 ? 0 : rings.length - 1], 1];
+    else {
+      let roll = Math.random() * NEST_SEEDS.reduce((n, s) => n + s[0], 0);
+      const pick = NEST_SEEDS.find(s => (roll -= s[0]) <= 0) || NEST_SEEDS[0];
+      reward = [pick[1], pick[2] + Math.floor(Math.random() * (pick[3] - pick[2] + 1))];
+    }
+    p.rec.inv[slot] = null; p.invDirty = true; // the emptied slot always has room for the (stackable) seeds or a ring
+    api.invAdd(p, reward[0], reward[1]);
+    api.msg(p, `You search the nest and find ${reward[1] > 1 ? reward[1] + ' ' + lower(ITEMS[reward[0]].name) + 's' : an(lower(ITEMS[reward[0]].name))}.`);
+  });
+
   // ------------------------------------------------------------------ flax
   api.objectAction('flax_plant', 'Pick', (p, obj) => api.gather(p, obj, {
     skill: 'crafting', level: 1, xp: 0, item: 'flax', every: 3, anim: 'pick', chance: () => 1,

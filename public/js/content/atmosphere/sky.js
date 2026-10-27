@@ -55,7 +55,8 @@ function targetWeather() {
   return weatherAt(Date.now());
 }
 
-// ---- building windows: emissive map + per-window hash so only some are lit
+// ---- building windows: drive the building material's emissive colour at night. If the material has no glow
+// mask of its own, add one for the classic 4 m facade bay texture with a per-window hash so only some are lit.
 let windowMat = null;
 export function patchBuildings(group) {
   if (windowMat) return;
@@ -63,6 +64,8 @@ export function patchBuildings(group) {
     const m = o.material;
     if (windowMat || !o.isMesh || !m?.isMeshLambertMaterial || !m.map || !m.vertexColors || m.side !== THREE.DoubleSide) return;
     windowMat = m;
+    // buildings.js ships its own window glow mask (matching its texture atlas): then we only drive `emissive`
+    if (m.emissiveMap) return;
     const c = document.createElement('canvas');
     c.width = c.height = 64;
     const g = c.getContext('2d');

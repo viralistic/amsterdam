@@ -62,7 +62,7 @@ registry.npcModels.cb_squirrel = (g, m, p) => {
 // ---------------------------------------------------------------- farm animals
 registry.npcModels.cb_cow = (g, m, p, T, H) => {
   H.quad(g, m, p, { len: 1.5, h: 0.75, w: 0.62, y: 0.95, color: '#f4f2ec', legR: 0.08, hoof: '#2a2a2a' });
-  for (const [x, y, z, sx, sz] of [[0.3, 1.05, 0.25, 0.08, 0.5], [-0.31, 0.95, -0.3, 0.08, 0.45], [0, 1.3, -0.1, 0.4, 0.35], [0.3, 0.9, -0.45, 0.08, 0.25]]) g.add(box(sx * (x ? 1 : 1), x ? 0.35 : 0.06, sz, '#1e1e1e', x, y, z, m));
+  for (const [x, y, z, r] of [[0.22, 1.05, 0.25, 0.22], [-0.22, 0.98, -0.3, 0.2], [0, 1.28, -0.05, 0.18], [0.22, 0.92, -0.42, 0.14]]) g.add(ball(r, '#1e1e1e', x, y, z, m, x ? 0.55 : 1.1, x ? 1 : 0.35, 1.2));
   const { head } = H.neckHead(g, m, { at: [1.05, 0.68], len: 0.25, ang: 1.15, r: 0.17, color: '#f4f2ec', head: 0.24, headColor: '#1e1e1e', snout: [0.13, 0.18, '#e8b0a8'] });
   for (const s of [-1, 1]) { const horn = cone(0.035, 0.18, '#e8e0c8', s * 0.16, 0.16, -0.05, m, 4); horn.rotation.z = -s * 1.1; head.add(horn); head.add(box(0.14, 0.05, 0.07, '#1e1e1e', s * 0.2, 0.05, -0.06, m)); }
   g.add(ball(0.13, '#e8a8a0', 0, 0.6, -0.3, m, 1, 0.7, 1));
@@ -138,7 +138,7 @@ registry.npcModels.cb_steam_golem = (g, m, p) => {
 };
 registry.npcModels.cb_gashouder = (g, m, p) => {
   const green = '#3e5a4a', frame = '#6a6e72', rust = '#7a4a2a';
-  const b = biped(g, m, p, { hip: 1.6, legLen: 1.6, legR: 0.3, legColor: frame, footColor: '#3a3e42', torsoW: 2.6, torsoH: 2.6, torsoD: 2.6, color: green, armLen: 2.0, armR: 0.28, armColor: frame, handR: 0.42, handColor: rust, headR: 0, shoulderW: 1.55, twoArm: true });
+  const b = biped(g, m, p, { hip: 1.6, legLen: 1.6, legR: 0.3, legColor: frame, footColor: '#3a3e42', torsoW: 2.6, torsoH: 2.6, torsoD: 2.6, color: green, armLen: 2.0, armR: 0.28, armColor: frame, handR: 0.42, handColor: rust, headR: 0, shoulderW: 1.85, twoArm: true });
   const tank = cyl(1.45, 1.45, 2.6, green, 0, 0, 0, m, 12); b.body.add(tank);
   b.body.add(cyl(1.5, 1.5, 0.16, frame, 0, 1.3, 0, m, 12)); b.body.add(cyl(1.5, 1.5, 0.16, frame, 0, -0.4, 0, m, 12));
   for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; b.body.add(box(0.14, 2.9, 0.14, frame, Math.cos(a) * 1.52, 0.1, Math.sin(a) * 1.52, m)); }

@@ -389,7 +389,7 @@ function fakeChunk(cx, cz) {
     for (const bx of [40, 170]) for (const s of [-1, 1]) for (let k = 0; k < 4; k++) { sf.bo.push(bx + s * (4 + k * 1.6), cz0 - 0.5); sf.bo.push(bx + s * (4 + k * 1.6), cz0 + 14.6); }
     for (let x = 100; x < 112; x += 1.6) sf.bo.push(x, cz0 - 0.5);
     for (const x of [21.5, 75.5, 129.5, 210.5]) { sf.be.push(x, cz0 + 15.4, 3.14); sf.wb.push(x + 1.8, cz0 + 15.3); }
-    for (const [x, n] of [[60, 6], [120, 4], [200, 8]]) sf.bi.push(x, cz0 - 8.2, 0, n);
+    for (const [x, n] of [[60, 6], [120, 4], [200, 8]]) sf.bi.push(x, cz0 - 6.9, 0, n);
     sf.bi.push(52, cz0 + 20.6, 3.14, 5);
   }
   if (out.g.length) {
