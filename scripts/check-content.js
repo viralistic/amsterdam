@@ -20,7 +20,7 @@ for (const [pack, mod] of Object.entries(CONTENT_PACKS)) {
 // client source text, to see which icons and models are registered
 const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(path.join(d, e.name)) : e.name.endsWith('.js') ? [path.join(d, e.name)] : []);
 const client = walk(path.join(root, 'public/js')).map(f => fs.readFileSync(f, 'utf8')).join('\n');
-const has = id => new RegExp(`(\\b|['"])${id}(['"]?\\s*:|['"]\\]\\s*=)|iconDrawers\\.${id}\\b|objectModels\\.${id}\\b|npcModels\\.${id}\\b`).test(client);
+const has = id => new RegExp(`(\\b|['"])${id}(['"]?\\s*:|['"]\\]\\s*=|\\s*\\([^)]*\\)\\s*\\{)|iconDrawers\\.${id}\\b|objectModels\\.${id}\\b|npcModels\\.${id}\\b`).test(client);
 
 console.log('Items without an icon (they would show as coins):');
 for (const [id, def] of Object.entries(ITEMS)) {

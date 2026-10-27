@@ -293,6 +293,7 @@ function optionsAt(sx, sy) {
       if (S.wild && (!e.g) === S.real) pre.push({ label: 'Attack', target: t, fn: (x, y) => act('player', e, 'attack', -1, x, y) });
       post.push({ label: 'Challenge', target: t, fn: (x, y) => act('player', e, 'challenge', -1, x, y) });
       post.push({ label: 'Trade with', target: t, fn: (x, y) => act('player', e, 'trade', 1, x, y) });
+      for (const f of registry.playerOptions) try { for (const o of f(e, registry.ctx) || []) post.push({ target: t, ...o }); } catch (err) { console.error(err); }
     }
   }
   const walk = tile ? [{ label: 'Walk here', target: '', fn: (x, y) => walkTo(tile.x, tile.z, x, y) }] : [];
@@ -380,6 +381,7 @@ function chat(text, kind = 'game', from = null, html = false) {
   S.chat.push(line);
   if (S.chat.length > 150) S.chat.shift();
   renderChatLine(line);
+  for (const f of registry.chatHooks) try { f(text, kind); } catch (e) { console.error(e); }
 }
 
 const FILTERS = { all: () => true, game: k => k !== 'public', public: k => k === 'public', trade: k => k === 'tradereq' || k === 'duelreq' || k === 'duel' };
@@ -499,7 +501,7 @@ function drawSkills() {
   }).join('') + `<div class="skill total-cell">Total<br>${total}</div></div><p class="note">Exploring XP comes from walking Amsterdam in real-life mode.</p>`;
 }
 
-const EQUIP_GRID = [null, 'head', null, 'cape', null, 'ammo', 'weapon', 'body', 'shield', null, 'legs', null, null, 'feet', null];
+const EQUIP_GRID = [null, 'head', null, 'cape', 'neck', 'ammo', 'weapon', 'body', 'shield', null, 'legs', null, 'hands', 'feet', 'ring'];
 function drawEquip() {
   const el = $('#tab-equip');
   el.innerHTML = '<div class="equip"></div><div class="bonus"></div>';

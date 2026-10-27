@@ -98,7 +98,7 @@ export const SPELLS = [
   { name: 'Wind Strike', lvl: 1, max: 2, xp: 5.5, color: '#e8f0f8', runes: { air_rune: 1, mind_rune: 1 } },
 ];
 
-export const EQUIP_SLOTS = ['head', 'cape', 'ammo', 'weapon', 'body', 'shield', 'legs', 'feet'];
+export const EQUIP_SLOTS = ['head', 'cape', 'neck', 'ammo', 'weapon', 'body', 'shield', 'legs', 'hands', 'feet', 'ring'];
 // Laid out in the skills tab in this order, three per row like the old interface.
 export const SKILLS = ['attack', 'hitpoints', 'mining', 'strength', 'agility', 'smithing', 'defence', 'herblore', 'fishing', 'ranged', 'thieving', 'cooking', 'prayer', 'crafting', 'firemaking', 'magic', 'fletching', 'woodcutting', 'farming', 'hunter', 'exploring'];
 export const SKILL_ICON = {

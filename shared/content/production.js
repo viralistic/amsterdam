@@ -69,14 +69,14 @@ def('ashes', { name: 'Ashes', value: 2, ex: 'A heap of ashes.' });
 // ---------------------------------------------------------------- Crafting
 def('leather', { name: 'Leather', value: 3, ex: "It's a piece of leather." });
 def('hard_leather', { name: 'Hard leather', value: 12, ex: "It's a piece of hard leather." });
-def('leather_gloves', { name: 'Leather gloves', value: 6, att: 1, def: 1, ex: 'These will keep my hands warm on the bike. (There is no glove slot yet.)' });
-def('leather_vambraces', { name: 'Leather vambraces', value: 18, rng: 4, def: 2, ex: 'Those are some nice vambraces. (There is no glove slot yet.)' });
+def('leather_gloves', { name: 'Leather gloves', value: 6, slot: 'hands', att: 1, def: 1, ex: 'These will keep my hands warm on the bike.' });
+def('leather_vambraces', { name: 'Leather vambraces', value: 18, slot: 'hands', rng: 4, def: 2, ex: 'Those are some nice vambraces.' });
 def('leather_chaps', { name: 'Leather chaps', value: 20, slot: 'legs', def: 4, rng: 4, color: '#7a5030', ex: 'Better than no armour!' });
 def('hardleather_body', { name: 'Hardleather body', value: 170, slot: 'body', def: 12, rng: 8, req: 10, skill: 'defence', color: '#5e3a20', ex: 'Harder than normal leather.' });
 for (const [cut, color] of Object.entries(GEM_COLOR)) def(cut, { name: cut[0].toUpperCase() + cut.slice(1), value: { sapphire: 250, emerald: 500, ruby: 1000, diamond: 2000 }[cut], gem: color, ex: `This looks valuable.` });
 for (const j of JEWELLERY) {
   const gem = j.gem ? j.gem[0].toUpperCase() + j.gem.slice(1) : 'Gold';
-  def(j.item, { name: `${gem} ${j.mould === 'ring_mould' ? 'ring' : 'amulet'}`, value: j.value, gem: j.gem ? GEM_COLOR[j.gem] : null, ex: `A ${j.gem ? j.gem + ' ' : 'plain gold '}${j.mould === 'ring_mould' ? 'ring' : 'amulet'}. Very Pieter Cornelisz Hooftstraat.` });
+  def(j.item, { name: `${gem} ${j.mould === 'ring_mould' ? 'ring' : 'amulet'}`, value: j.value, slot: j.mould === 'ring_mould' ? 'ring' : 'neck', gem: j.gem ? GEM_COLOR[j.gem] : null, ex: `A ${j.gem ? j.gem + ' ' : 'plain gold '}${j.mould === 'ring_mould' ? 'ring' : 'amulet'}. Very Pieter Cornelisz Hooftstraat.` });
 }
 def('soft_clay', { name: 'Soft clay', value: 2, ex: 'Clay that is soft enough to mould.' });
 def('unfired_pot', { name: 'Unfired pot', value: 2, ex: 'I need to put this in a pottery oven.' });

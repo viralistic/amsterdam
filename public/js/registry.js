@@ -14,6 +14,12 @@ export const registry = {
   chunkDecorators: [],
   // frameHooks: (now, ctx) => void, run every animation frame (water, weather, day/night...).
   frameHooks: [],
+  // chunkUnloaders: (chunk) => void, run before a chunk is removed. Meshes flagged userData.shared are not disposed.
+  chunkUnloaders: [],
+  // playerOptions: (ent, ctx) => [{ label, fn }] extra right-click options on other players (Add friend, Report...).
+  playerOptions: [],
+  // chatHooks: (text, kind) => void, called for every chat line.
+  chatHooks: [],
   // sfx: (id) => void, set by the audio pack. Content may call registry.sfx?.(id).
   sfx: null,
   // ctx is filled in by main.js: { S, send, chat, openWindow, closeWindow, iconImg, renderer, showMenu, esc, ITEMS }

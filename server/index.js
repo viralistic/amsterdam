@@ -1233,8 +1233,8 @@ function invOp(p, m) {
   if (m.op === 'op') { // content-defined option such as Bury, Light, Read
     const name = String(m.name);
     if (!def.ops?.includes(name)) return;
-    const h = reg.itemOps[name];
-    if (h) h(p, m.slot, s, def, api);
+    // several packs may handle the same option name; the first that doesn't return false wins
+    for (const h of reg.itemOps[name] || []) if (h(p, m.slot, s, def, api) !== false) break;
     return;
   }
   if (m.op === 'wield' && def.slot) {
@@ -1309,6 +1309,8 @@ const api = {
   players, npcs, objects, ground, get tick() { return tickNo; }, now,
   // geography
   toTile, toLatLon, cheb, regionAt, wildLevel, interiorAt,
+  getChunk, // (cx, cz) -> Promise of the map chunk (roads, buildings, water, parks) for placing content
+  keyOf, online: nameOrKey => online.get(keyOf(String(nameOrKey || ''))) || null,
   tile: (lat, lon) => { const t = toTile(lat, lon); return { x: Math.round(t.x), z: Math.round(t.z) }; },
   // messaging
   send, msg, say, rand,
@@ -1339,7 +1341,7 @@ const api = {
   onUse: f => reg.useOn.push(f),
   objectAction: (type, action, f) => { (reg.objActions[type] ??= {})[action] = f; },
   npcAction: (key, action, f) => { (reg.npcActions[key] ??= {})[action] = f; },
-  itemOp: (name, f) => { reg.itemOps[name] = f; },
+  itemOp: (name, f) => { (reg.itemOps[name] ??= []).push(f); },
   dialog: (name, script) => { DIALOGS[name] = script; },
   dialogAction: (name, f) => { reg.dialogActs[name] = f; },
   shop: (id, def) => { SHOPS[id] = def; return def; },

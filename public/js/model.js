@@ -152,6 +152,28 @@ export function buildModel(ent) {
     staff.position.y = -0.29;
     staff.rotation.x = 0.25;
     parts.elbowR.add(staff);
+  } else if (wdef?.tool === 'axe' || wdef?.tool === 'pickaxe') {
+    // wooden haft with a metal head: a wedge for axes, a curved double spike for pickaxes
+    const tool = new THREE.Group();
+    const haft = seg(0.025, 0.025, 0.7, '#6b4a26', mats, { sides: 5 }); haft.position.y = 0.3;
+    tool.add(haft);
+    const metal = mat(wdef.metal, mats);
+    if (wdef.tool === 'axe') {
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.17, 0.035).translate(0.09, 0, 0), metal);
+      const edge = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.24, 0.03).translate(0.2, 0, 0), metal);
+      head.position.y = edge.position.y = 0.6;
+      tool.add(head, edge);
+    } else {
+      for (const sgn of [-1, 1]) {
+        const spike = new THREE.Mesh(new THREE.CylinderGeometry(0.0, 0.035, 0.26, 4).translate(0, 0.13, 0), metal);
+        spike.rotation.z = -sgn * 1.25;
+        spike.position.set(sgn * 0.02, 0.64, 0);
+        tool.add(spike);
+      }
+    }
+    tool.position.y = -0.29;
+    tool.rotation.x = 1.15;
+    parts.elbowR.add(tool);
   } else if (eq.weapon) {
     const w = ITEMS[eq.weapon];
     const len = eq.weapon.includes('dagger') ? 0.38 : eq.weapon.includes('longsword') ? 0.95 : 0.75;
@@ -166,7 +188,26 @@ export function buildModel(ent) {
     wpn.rotation.x = 1.15;
     parts.elbowR.add(wpn);
   }
-  if (eq.shield) {
+  if (eq.shield && ITEMS[eq.shield]?.kite) {
+    // metal kiteshield: a flat kite outline (round top, pointed bottom) with a darker rim behind it
+    const m = ITEMS[eq.shield].metal;
+    const kite = (k, depth) => {
+      const sp = new THREE.Shape();
+      sp.moveTo(-0.22 * k, 0.12 * k);
+      sp.quadraticCurveTo(-0.22 * k, 0.32 * k, 0, 0.34 * k);
+      sp.quadraticCurveTo(0.22 * k, 0.32 * k, 0.22 * k, 0.12 * k);
+      sp.lineTo(0, -0.42 * k);
+      sp.closePath();
+      return new THREE.ExtrudeGeometry(sp, { depth, bevelEnabled: false, curveSegments: 3 }).rotateY(Math.PI / 2);
+    };
+    const rim = new THREE.Mesh(kite(1, 0.03), mat(new THREE.Color(m).multiplyScalar(0.6).getStyle(), mats));
+    const face = new THREE.Mesh(kite(0.88, 0.03), mat(m, mats));
+    face.position.x = -0.02;
+    const sh = new THREE.Group();
+    sh.add(rim, face);
+    sh.position.set(-0.1, -0.12, 0.05);
+    parts.elbowL.add(sh);
+  } else if (eq.shield) {
     const sh = new THREE.Group();
     const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.27, 0.27, 0.04, 8).rotateZ(Math.PI / 2), mat('#5c5c62', mats));
     const face = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.05, 8).rotateZ(Math.PI / 2), mat('#8a5a2c', mats));

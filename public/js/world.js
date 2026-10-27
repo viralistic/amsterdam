@@ -57,7 +57,8 @@ export class World {
   unload(k) {
     const c = this.chunks.get(k);
     if (!c) return;
-    c.group.traverse(o => { if (o.geometry && o.geometry !== this.trunkGeo && o.geometry !== this.crownGeo && o.geometry !== this.tuftGeo) o.geometry.dispose(); if (o.material?.map) o.material.map.dispose(); });
+    for (const f of registry.chunkUnloaders) try { f(c); } catch (e) { console.error(e); }
+    c.group.traverse(o => { if (o.userData.shared) return; if (o.geometry && o.geometry !== this.trunkGeo && o.geometry !== this.crownGeo && o.geometry !== this.tuftGeo) o.geometry.dispose(); if (o.material?.map) o.material.map.dispose(); });
     this.scene.remove(c.group);
     this.chunks.delete(k);
   }

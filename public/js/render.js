@@ -21,8 +21,9 @@ export class Renderer {
     this.scene.background = sky;
     this.scene.fog = new THREE.Fog(sky, 70, 150);
     this.camera = new THREE.PerspectiveCamera(42, 1, 0.5, 260);
-    this.scene.add(new THREE.HemisphereLight('#dfe8f0', '#5a5040', 1.6));
-    const sun = new THREE.DirectionalLight('#fff4e0', 1.6);
+    this.hemi = new THREE.HemisphereLight('#dfe8f0', '#5a5040', 1.6);
+    this.scene.add(this.hemi);
+    const sun = this.sun = new THREE.DirectionalLight('#fff4e0', 1.6);
     sun.position.set(-40, 80, 30);
     this.scene.add(sun);
     this.world = new World(this.scene);
