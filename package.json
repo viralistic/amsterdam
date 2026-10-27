@@ -8,9 +8,13 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "FAKE_MAP=1 node server/index.js",
-    "bake-map": "node scripts/bake-map.js"
+    "bake-map": "node scripts/bake-map.js",
+    "test": "node --test --test-concurrency=1 test/*.test.js",
+    "check": "node scripts/check-content.js"
   },
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "three": "0.186.1",
     "ws": "8.18.3"

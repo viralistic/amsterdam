@@ -1366,7 +1366,7 @@ const loginAttempts = new Map();
 async function login(ws, ip, m) {
   const fail = text => ws.send(JSON.stringify({ t: 'err', text }));
   const tries = (loginAttempts.get(ip) || []).filter(t => t > now() - 60_000);
-  if (tries.length >= 15) return fail('Too many login attempts. Please wait a minute.');
+  if (tries.length >= (+process.env.LOGIN_LIMIT || 15)) return fail('Too many login attempts. Please wait a minute.');
   tries.push(now()); loginAttempts.set(ip, tries);
   const name = String(m.name || '').trim(), pass = String(m.pass || '');
   if (!validName(name)) return fail('Usernames are 1-12 letters, numbers, spaces, - or _.');
