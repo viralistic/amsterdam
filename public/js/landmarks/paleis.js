@@ -495,9 +495,8 @@ export default function build(b) {
     { u0: 38.6 - 3 * B, u1: 38.6, w: wp, n: 3 },
   ];
   // the Dam facade (+z), and the back facade (-z)
-  const T = () => b.pos.length / 9, D = globalThis.__DBG ? console.log : () => {}; let t0 = T();
-  facade(b, frame(0, 0, 1, 0, 0, 1), lane(26.6, 27.1, 27.4, true, true), true); D('front', T() - t0); t0 = T();
-  facade(b, frame(0, 0, -1, 0, 0, -1), lane(26.6, 27.1, 27.4, false, false), false); D('rear', T() - t0); t0 = T();
+  facade(b, frame(0, 0, 1, 0, 0, 1), lane(26.6, 27.1, 27.4, true, true), true);
+  facade(b, frame(0, 0, -1, 0, 0, -1), lane(26.6, 27.1, 27.4, false, false), false);
   // the side facades: corner pavilions and ten plain bays
   const sideB = 10.07 / 3;
   const side = [
@@ -506,7 +505,7 @@ export default function build(b) {
     { u0: 27.1 - 3 * sideB, u1: 27.1, w: 38.6, n: 3 },
   ];
   facade(b, frame(0, 0, 0, -1, 1, 0), side, false);
-  facade(b, frame(0, 0, 0, 1, -1, 0), side, false); D('sides', T() - t0); t0 = T();
-  roofs(b); D('roofs', T() - t0); t0 = T();
-  cupola(b); D('cupola', T() - t0); t0 = T();
+  facade(b, frame(0, 0, 0, 1, -1, 0), side, false);
+  roofs(b);
+  cupola(b);
 }

@@ -301,6 +301,7 @@ function signTexture(THREE) {
   g.fillStyle = '#f7f3ea';
   g.font = 'italic bold 104px Georgia, "Times New Roman", serif';
   g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.shadowColor = 'rgba(50, 18, 10, 0.75)'; g.shadowOffsetX = 3; g.shadowOffsetY = 4; g.shadowBlur = 0;
   g.fillText('de Bijenkorf', 512, 66);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;

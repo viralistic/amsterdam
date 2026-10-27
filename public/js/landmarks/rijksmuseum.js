@@ -413,8 +413,8 @@ function model(b) {
       if (!back) rWingRoof(b, F, x0, x1, zf, zb, YE, YR, s < 0 ? -f1 : f0, s < 0 ? -f0 : f1, nb);
       else {
         roofX(b, x0, x1, -ZF - 0.6, zb + 0.4, YE, YR, SL, SL2, SL2);
-        const slope = (YR - YE) / (ZF + 0.6 - (ZF - zb) / 2 - 0 * zb) , bw = (f1 - f0) / nb;
-        for (let i = 0; i < nb; i += 2) dormer(b, F, (s < 0 === !back ? -f1 : f0) + bw * (i + 0.5), YE + 1.6 * (YR - YE) / 6.15, -1.0, 2.0, 2.2);
+        const bw = (f1 - f0) / nb, u0 = s < 0 === !back ? -f1 : f0;
+        for (let i = 1; i < nb; i += 2) dormer(b, F, u0 + bw * (i + 0.5), YE + 1.6 * (YR - YE) / 6.15, -1.0, 2.0, 2.2);
       }
       walls(b, x0, x1, Math.min(zf, zb), Math.max(zf, zb), 0, YE, BR, back ? 'S' : 'N');
     }

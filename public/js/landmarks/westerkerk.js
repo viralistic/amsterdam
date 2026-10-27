@@ -324,7 +324,7 @@ export default function build(b, THREE, group) {
   crown(b, TX, 63.75);
 
   // spire with gilded ball and weathervane
-  b.frustum(TX, 0, 0.16, 0.07, 71.4, 79.0, 6, '#59606a');
+  b.frustum(TX, 0, 0.2, 0.08, 71.4, 79.0, 6, '#7f8a94');
   b.frustum(TX, 0, 0.05, 0.4, 76.0, 76.4, 8, GOLD); b.frustum(TX, 0, 0.4, 0.05, 76.4, 76.9, 8, GOLD);
   b.frustum(TX, 0, 0.07, 0.03, 79.0, 84.6, 4, GOLD);
   b.frustum(TX, 0, 0.03, 0.22, 79.0, 79.3, 6, GOLD); b.frustum(TX, 0, 0.22, 0.03, 79.3, 79.6, 6, GOLD);
