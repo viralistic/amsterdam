@@ -384,6 +384,7 @@ function model(b) {
       F.slab(z0, z1, ye - 0.5, ye, 0, 0.5, ST);
     }
     roofZ(b, -hw - 0.5, hw + 0.5, z0, z1, ye, 36.5, SL2);
+    for (const sd of [-1, 1]) { const S = new Fac(b, sd * hw, 0, sd > 0 ? 1 : 3); for (const z of [-18, -6, 6, 18]) dormer(b, S, sd > 0 ? -z : z, ye + 1.5 * 14.5 / 11.5, -1.5, 2.0, 2.2); }
     b.box(-1.2, 1.2, -1.2, 1.2, 35, 37.6, SL2, SL2, false);
     shell(b, 0, 0, 1.5, 1.5, 37.6, 37.9, 8, GOLD);
     shell(b, 0, 0, 1.25, 1.25, 37.9, 40.6, 8, DK);
