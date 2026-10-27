@@ -110,7 +110,7 @@ export default function welkom(api, lib) {
 
   // tutorial objects
   const tree = api.spawnObject({ type: 'q_tut_tree', ...tile(52.37800, 4.90068) });
-  const spot = api.spawnObject({ type: 'q_tut_fishspot', ...tile(52.37772, 4.90122) });
+  const spot = api.spawnObject({ type: 'q_tut_fishspot', ...tile(52.37776, 4.90098) });
   api.spawnObject({ type: 'q_tut_stove', ...tile(52.37790, 4.90055) });
 
   lib.on('q_tut_tree', 'Chop down', (p, obj) => {
