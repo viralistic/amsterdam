@@ -60,13 +60,16 @@ export default function bos(api, lib) {
   lib.npc({ name: 'Eekhoorn Eef', dlg: 'eef', at: tile(52.32380, 4.84560), wander: 4, model: 'q_squirrel', chatter: ['Nootjes!', '*chitter*'], ex: 'A red squirrel with very strong opinions.' }, {
     start: [
       { npc: '*chitter* A big human! Do you have nuts? No? Hmph.' },
+      { goto: 'menu' },
+    ],
+    menu: [
       { opts: [['Where are the glowing mushrooms?', 'shrooms'], ['Where is the corrupted boar?', 'boar'], ['Tell me about the Oude Eik.', 'oak'], ['Bye, Eef.', 'end']] },
     ],
-    shrooms: [{ npc: 'Glowy mushrooms grow along the paths around here. Blue ones. Do NOT eat them. My cousin ate one and thought he was a hedgehog for a week.' }, { goto: 'start' }],
-    boar: [{ npc: 'The sick boar stomps around east of the Oude Eik. His eyes glow purple. He ate my winter stash! Bonk him for me.' }, { goto: 'start' }],
-    oak: [{ npc: 'The Oude Eik was here before the humans planted the rest. It hums. It only lets you take a branch if you are strong with an axe. And polite.' }, { goto: 'start' }],
+    shrooms: [{ npc: 'Glowy mushrooms grow along the paths around here. Blue ones. Do NOT eat them. My cousin ate one and thought he was a hedgehog for a week.' }, { goto: 'menu' }],
+    boar: [{ npc: 'The sick boar stomps around east of the Oude Eik. His eyes glow purple. He ate my winter stash! Bonk him for me.' }, { goto: 'menu' }],
+    oak: [{ npc: 'The Oude Eik was here before the humans planted the rest. It hums. It only lets you take a branch if you are strong with an axe. And polite.' }, { goto: 'menu' }],
   });
-  const stag = lib.npc({ name: 'Witte Hert', dlg: 'witte_hert', at: tile(52.32140, 4.84270), home: RING, wander: 3, model: 'q_white_stag', ex: 'A white stag with golden antlers. It looks right through you.' }, {
+  const stag = lib.npc({ name: 'Witte Hert', dlg: 'witte_hert', at: { x: RING.x + 3, z: RING.z + 1 }, home: RING, wander: 3, model: 'q_white_stag', ex: 'A white stag with golden antlers. It looks right through you.' }, {
     start: [{ act: p => st(p) === 3 ? 'meet' : api.questDone(p, ID) ? 'after' : 'shy' }],
     shy: [{ npc: '*The white stag looks at you for a long moment, then turns away.*' }],
     meet: [

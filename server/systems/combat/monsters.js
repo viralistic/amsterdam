@@ -254,7 +254,7 @@ export const MONSTERS = {
   // ================= hidden lair
   cb_colossus: {
     name: 'The Concrete Colossus', model: 'cb_colossus', wander: 3, respawn: 200, leash: 20, ex: 'A titan of poured concrete and rebar, slumbering beneath the fantasy ruins. The deepest danger of the Wilderness.',
-    combat: cb(268, 450, 170, 175, 170, 30, { speed: 6, aggressive: true, aggroRange: 10, boss: true, attBonus: 120, defBonus: 160 }),
+    combat: cb(268, 380, 170, 175, 160, 30, { speed: 6, aggressive: true, aggroRange: 10, boss: true, attBonus: 120, defBonus: 130 }),
     drops: {
       always: [['big_bones', 3], ['ancient_shard', 40], ['coins', 5000]], rolls: 3,
       table: [[8, 'coins', 3000, 15000], [6, 'ancient_shard', 20, 60], [5, 'runite_ore', 3, 8], [4, 'rune_bar', 2, 5], [4, 'uncut_diamond', 2, 4], [3, 'dragon_bones', 3, 8], [3, 'revenant_ether', 30, 80], [2, 'grimy_ranarr', 5, 12]],

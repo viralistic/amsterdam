@@ -7,6 +7,7 @@ export const ITEMS = {
   graceful_cape: { name: 'Graceful cape', value: 1, slot: 'cape', def: 3, color: '#3f8f7a', ex: 'It flutters nicely when you jump over canals.' },
   graceful_top: { name: 'Graceful top', value: 1, slot: 'body', def: 4, color: '#3f8f7a', ex: 'Breathable, quick-drying and very Noord.' },
   graceful_legs: { name: 'Graceful legs', value: 1, slot: 'legs', def: 4, color: '#2f6f5e', ex: 'Stretchy trousers for hopping across houseboats.' },
+  graceful_gloves: { name: 'Graceful gloves', value: 1, slot: 'hands', def: 1, color: '#3f8f7a', ex: 'For a good grip on wet railings.' },
   graceful_boots: { name: 'Graceful boots', value: 1, slot: 'feet', def: 2, color: '#e8efe6', ex: 'Grippy soles. Rooftop approved.' },
 
   // ---- thieving

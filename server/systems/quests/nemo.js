@@ -161,7 +161,7 @@ export default function nemo(api, lib) {
   // ---------------------------------------------------------------- the reward item
   const home = tile(52.37355, 4.91168);
   api.itemOp('Teleport', (p, slot) => {
-    if (p.rec.inv[slot]?.id !== 'prototype_teleporteur') return;
+    if (p.rec.inv[slot]?.id !== 'prototype_teleporteur') return false;
     if (!api.canTeleport(p)) return;
     const d = lib.qdata(p, ID);
     if ((d.tpAt || 0) > api.now()) return msg(p, `The prototype is still recharging. (${Math.ceil((d.tpAt - api.now()) / 1000)} seconds)`);
@@ -176,6 +176,7 @@ export default function nemo(api, lib) {
     msg(p, 'WHOOSH! You teleport to NEMO. Your hair stands on end.');
   });
   api.itemOp('Check', (p, slot) => {
+    if (p.rec.inv[slot]?.id !== 'prototype_teleporteur') return false;
     const d = lib.qdata(p, ID);
     msg(p, (d.tpAt || 0) > api.now() ? `Recharging: ${Math.ceil((d.tpAt - api.now()) / 1000)} seconds left.` : 'The display reads: "READY. Destination: NEMO. Accuracy: probably."');
   });

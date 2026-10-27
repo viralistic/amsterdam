@@ -1,6 +1,5 @@
 // Quest 5: De Toren van de Westerkerk. Repair the tower clock, play the carillon, find the key in the imperial
 // crown and lay a restless painter to rest in the crypt where Rembrandt was buried in 1669.
-import { landmarkFront } from './lib.js';
 
 const ID = 'westertoren';
 const X = 30400, Z = 30000;
@@ -13,13 +12,13 @@ export default function westertoren(api, lib) {
 
   api.quest({
     id: ID, name: 'De Toren van de Westerkerk', points: 2,
-    start: 'I can start this quest by talking to Koster Joost outside the Westerkerk. I will need a hammer.',
+    start: 'I can start this quest by talking to Beiaardier Joost outside the Westerkerk, by the Prinsengracht door. I will need a hammer.',
     journal: lib.journal(['The carillon of the Westertoren has fallen silent, and a cold draught rises from under the church floor.'], [
-      { at: 1, todo: ['Koster Joost asked me to climb the tower (stairs in the north-west corner of the church) and find out why the clock stopped.', 'I might need a hammer. The Albert Heijn sells them.'], done: 'I repaired the tower clock and found a page of sheet music stuck in the gears.' },
+      { at: 1, todo: ['Beiaardier Joost asked me to climb the tower (stairs in the north-west corner of the church) and find out why the clock stopped.', 'I might need a hammer. The Albert Heijn sells them.'], done: 'I repaired the tower clock and found a page of sheet music stuck in the gears.' },
       { at: 2, todo: ['I should play the notes circled on the sheet music on the carillon bells, one floor above the clock, in the right order.'], done: 'I played the melody on the carillon. Something rattled loose high up in the tower.' },
       { at: 3, todo: ['I should climb to the very top of the tower and search the imperial crown.'], done: 'I found an old crypt key inside the imperial crown.' },
       { at: 4, todo: ['I should open the trapdoor in the floor of the church and go down into the crypt.', 'Something restless lives down there.'], done: 'In the crypt I helped a restless painter find his grave.' },
-      { at: 5, todo: ['I should tell Koster Joost what happened in the crypt.'] },
+      { at: 5, todo: ['I should tell Beiaardier Joost what happened in the crypt.'] },
     ]),
   });
 
@@ -27,36 +26,31 @@ export default function westertoren(api, lib) {
   const R = (x0, z0, x1, z1, floor, wall, h = 4) => ({ x0: X + x0, z0: Z + z0, x1: X + x1, z1: Z + z1, floor, wall, h });
   const at = (x, z) => ({ x: X + x, z: Z + z });
   const slab = (x, z) => ['#a8a090', [X + x, Z + z, X + x + 1, Z + z, X + x + 1, Z + z + 2, X + x, Z + z + 2]];
+  // The church nave itself is the production pack's Westerkerk interior (x 38000-38018, z 30000-30036, door on the
+  // Prinsengracht side). This quest adds the tower stairs, a trapdoor and a plaque inside it, and owns the tower and crypt.
+  const C = { x0: 38000, z0: 30000, x1: 38018, z1: 30036 };
+  const nave = (x, z) => ({ x: C.x0 + x, z: C.z0 + z });
   lib.buildInterior({
-    id: 'westerkerk', name: 'Westerkerk',
+    id: 'westertoren', name: 'Westertoren',
     rooms: [
-      R(0, 20, 39, 39, '#c8c0b0', '#f0ece4', 6), // nave
       R(50, 0, 59, 9, '#6a5038', '#7a3f2b', 3.5), // clock room
       R(50, 14, 61, 25, '#6a5038', '#7a3f2b', 4), // bell chamber
       R(52, 32, 59, 39, '#3a5a9a', '#2a4a8a', 1.4), // the crown (open gallery at the top)
-      R(0, 50, 25, 69, '#4a4640', '#34302a', 3), // crypt
     ],
-    gaps: [[X + 20, Z + 40]],
-    deco: [slab(6, 24), slab(9, 24), slab(12, 24), slab(27, 24), slab(30, 24), slab(33, 24), slab(6, 33), slab(27, 33), slab(30, 33), slab(33, 33),
-      ['#8a7a6a', [X + 18, Z + 20, X + 23, Z + 20, X + 23, Z + 39, X + 18, Z + 39]], ['#dce8f0', [X + 52, Z + 32, X + 60, Z + 32, X + 60, Z + 33, X + 52, Z + 33]]],
+    deco: [['#dce8f0', [X + 52, Z + 32, X + 60, Z + 32, X + 60, Z + 33, X + 52, Z + 33]]],
   });
-  const front = landmarkFront('westerkerk', 18, 1.5);
-  lib.entrance({ ...front, to: at(20, 38), quest: ID, stage: 1, lockedMsg: 'The church door is locked. Koster Joost has the key.', msg: 'The heavy door creaks open.' });
-  lib.exit({ ...at(20, 40), to: landmarkFront('westerkerk', 18, 3.5), msg: 'You step out onto the Prinsengracht side.' });
-  lib.stairs('stairs_up', { ...at(2, 37), to: at(52, 7), msg: 'You climb the narrow stairs up the Westertoren. Many, many stairs.' });
-  lib.stairs('stairs_down', { ...at(51, 8), to: at(4, 36), msg: 'You climb back down into the church.' });
+  lib.buildInterior({ id: 'westerkerk_crypte', name: 'Westerkerk crypt', rooms: [R(0, 50, 25, 69, '#4a4640', '#34302a', 3)], deco: [slab(12, 62), slab(6, 52)] });
+  lib.stairs('stairs_up', { ...nave(1, 33), to: at(52, 7), quest: ID, stage: 1, lockedMsg: 'The door to the tower stairs is locked. Beiaardier Joost, outside, has the key.', msg: 'You climb the narrow stairs up the Westertoren. Many, many stairs.' });
+  lib.stairs('stairs_down', { ...at(51, 8), to: nave(2, 31), msg: 'You climb back down into the church.' });
   lib.stairs('stairs_up', { ...at(58, 8), to: at(52, 23), msg: 'You climb up to the bell chamber.' });
   lib.stairs('stairs_down', { ...at(51, 24), to: at(56, 7), msg: 'You go down to the clock room.' });
   lib.stairs('ladder_up', { ...at(60, 24), to: at(54, 38), msg: 'You climb a rickety ladder to the very top of the tower. The wind is howling.' });
   lib.stairs('ladder_down', { ...at(53, 39), to: at(59, 23), msg: 'You climb back down to the bells.' });
-  api.spawnObject({ type: 'ladder_up', ...at(2, 51), data: { to: { x: X + 10, z: Z + 33, inside: true, msg: 'You climb out of the crypt.' } } });
-
-  api.spawnObject({ type: 'q_organ', ...at(20, 21) });
-  api.spawnObject({ type: 'q_altar', ...at(20, 27) });
-  api.spawnObject({ type: 'q_rembrandt_plaque', ...at(39, 30), rot: -Math.PI / 2 });
-  for (const [x, z] of [[16, 27], [24, 27], [1, 21], [38, 21], [38, 38]]) api.spawnObject({ type: 'q_candles', ...at(x, z) });
-  for (const [x, z] of [[5, 30], [35, 30], [15, 30], [25, 30]]) api.spawnObject({ type: 'q_pillar', ...at(x, z) });
-  api.spawnObject({ type: 'q_trapdoor', ...at(10, 34) });
+  api.spawnObject({ type: 'ladder_up', ...at(2, 51), data: { to: { ...nave(3, 24), inside: true, msg: 'You climb out of the crypt into the church.' } } });
+  api.spawnObject({ type: 'q_rembrandt_plaque', ...nave(18, 18), rot: -Math.PI / 2 });
+  api.spawnObject({ type: 'q_trapdoor', ...nave(3, 22) });
+  // crypt chapel: the altar here blesses those who completed the quest
+  api.spawnObject({ type: 'q_altar', ...at(20, 52) });
   api.spawnObject({ type: 'q_clockwork', ...at(55, 1) });
   api.spawnObject({ type: 'q_crate', ...at(50, 0) });
   api.spawnObject({ type: 'q_bell_sol', ...at(52, 16) }); api.spawnObject({ type: 'q_bell_mi', ...at(58, 16) });
@@ -77,7 +71,7 @@ export default function westertoren(api, lib) {
   const koster = {
     start: [{ act: p => ['s0', 's1', 's1', 's1', 's1', 's5'][st(p)] || 'sdone' }],
     s0: [
-      { npc: 'Goedendag. I am Joost, the koster of the Westerkerk. Sexton, you would say. I unlock doors, polish brass and worry.' },
+      { npc: 'Goedendag. I am Joost, the beiaardier of the Westertoren: I play the carillon. Or I did, until yesterday.' },
       { npc: 'Since yesterday the carillon has been silent. Fifty bells, and not one peep. And there is a cold draught coming up from under the floor.' },
       { opts: [['What can I do?', 'help'], ['Tell me about the church.', 'lore'], ['Bye.', 'end']] },
     ],
@@ -87,26 +81,25 @@ export default function westertoren(api, lib) {
       { opts: [['What can I do to help?', 'help'], ['Bye.', 'end']] },
     ],
     help: [
-      { npc: 'My knees do not like the tower stairs anymore. Could you climb up and see why the clock stopped? The stairs are in the north-west corner of the church.' },
+      { npc: 'My knees do not like the tower stairs anymore. Could you climb up and see why the clock stopped? The bells hang on the clock. The tower stairs are inside the church, in the south-west corner. Here is the key.' },
       { npc: 'Take a hammer, the old clockwork sometimes needs a gentle tap. A gentle one!' },
       { act: p => { setQ(p, ID, 1); return null; } },
     ],
-    s1: [{ npc: p => [null, 'The stairs to the tower are in the north-west corner of the church. Bring a hammer!', 'The clock is ticking again! Now the bells... try playing them, they sometimes get stuck.', 'Did something fall from the top? I heard a clang.', 'A key from the crown? That opens the old crypt, under the trapdoor in the church floor. Nobody has been down there in a century.'][st(p)] }],
+    s1: [{ npc: p => [null, 'The tower stairs are in the south-west corner of the church. Bring a hammer!', 'The clock is ticking again! Now the bells... try playing them, they sometimes get stuck.', 'Did something fall from the top? I heard a clang.', 'A key from the crown? That opens the old crypt, under the trapdoor in the church floor. Nobody has been down there in a century.'][st(p)] }],
     s5: [
       { player: 'There was a ghost down in the crypt. A painter, looking for his own grave. He is at peace now.' },
       { npc: 'A painter? Buried here in 1669... You don\'t mean... no. No, that would be silly. Wouldn\'t it?' },
       { npc: 'Whoever he was, thank you. Listen! The carillon is playing again. Take this psalter, it has been blessed under this tower for three hundred years.' },
-      { npc: 'And whenever you need strength, pray at our altar. It will look after you.' },
+      { npc: 'And the little altar down in the crypt: pray there whenever you need strength. It will look after you now.' },
       { act: p => {
         for (const it of ['bladmuziek', 'crypte_sleutel']) while (lib.has(p, it)) lib.take(p, it);
-        api.completeQuest(p, ID, { xp: { prayer: 3000, crafting: 500 }, items: [['westerkerk_psalter', 1]], coins: 1000, text: ['The Westerkerk altar boosts your prayer'] });
+        api.completeQuest(p, ID, { xp: { prayer: 3000, crafting: 500 }, items: [['westerkerk_psalter', 1]], coins: 1000, text: ['The crypt altar boosts your prayer'] });
         return 'end';
       } },
     ],
-    sdone: [{ npc: 'Hear that? Every quarter of an hour. Lovely. Pray at the altar any time, friend.' }],
+    sdone: [{ npc: 'Hear that? Every quarter of an hour. That is me! The crypt is open to you whenever you want to pray, friend.' }],
   };
-  lib.npc({ name: 'Koster Joost', dlg: 'koster', at: landmarkFront('westerkerk', 14, 3), look: lib.L(0, 0, 0, 5, 5, { topC: '#2a2a2a' }), eq: { feet: 'leather_boots' }, wander: 1, chatter: ['Fifty bells and not one peep...'], ex: 'The sexton of the Westerkerk. He jingles with keys.' }, koster);
-  api.spawnNpc({ name: 'Koster Joost', talk: 'q_koster', at: at(14, 28), wander: 2, look: lib.L(0, 0, 0, 5, 5, { topC: '#2a2a2a' }), eq: { feet: 'leather_boots' }, ex: 'The sexton of the Westerkerk.' });
+  lib.npc({ name: 'Beiaardier Joost', dlg: 'beiaardier', at: api.tile(52.37456, 4.88466), look: lib.L(0, 0, 0, 5, 5, { topC: '#2a2a2a' }), eq: { feet: 'leather_boots' }, wander: 1, chatter: ['Fifty bells and not one peep...'], ex: 'The carillon player of the Westertoren. He jingles with keys.' }, koster);
 
   lib.npc({ name: 'Geest van de schilder', dlg: 'schildersgeest', at: at(12, 60), home: at(12, 60), wander: 3, model: 'q_painter_ghost', chatter: ['Where... where do I rest?', 'Light... I need more light...'], ex: 'A translucent old man with paint on his fingers.' }, {
     start: [{ act: p => st(p) === 4 ? 'ask' : st(p) >= 5 || api.questDone(p, ID) ? 'peace' : 'boo' }],
@@ -169,7 +162,7 @@ export default function westertoren(api, lib) {
     if (st(p) < 4) return msg(p, 'The trapdoor is locked with a black iron lock.');
     if (st(p) === 4 && !lib.has(p, 'crypte_sleutel')) return msg(p, 'The trapdoor is locked. You need the crypt key from the tower.');
     msg(p, 'You unlock the trapdoor and climb down into the crypt. It is very cold.');
-    api.teleport(p, X + 3, Z + 52);
+    api.teleport(p, X + 3, Z + 52, { inside: true });
   });
   lib.on('q_tomb', 'Read', (p, obj) => api.startDialog(p, null, { start: [{ npc: obj.data.tomb.text }] }, 'Tomb slab'));
   lib.on('q_tomb', 'Pray-at', (p, obj) => {
@@ -194,7 +187,7 @@ export default function westertoren(api, lib) {
     p.anim = 'pray'; p.animUntil = api.tick + 3;
     if (p.rec.prayer >= max + bonus) return msg(p, 'You already feel at peace.');
     p.rec.prayer = max + bonus;
-    msg(p, bonus ? 'You pray at the Westerkerk altar. The tower blesses you: your prayer is boosted above its normal level!' : 'You pray at the altar and recharge your prayer points.');
+    msg(p, bonus ? 'You pray at the crypt altar. The painter\'s light blesses you: your prayer is boosted above its normal level!' : 'You pray at the altar and recharge your prayer points.');
   });
   return { shadeIds };
 }

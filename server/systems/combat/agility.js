@@ -136,7 +136,7 @@ export function registerAgility(api, U) {
   });
 
   // ================= graceful outfit: Grietje sells it for marks of grace, and wearing it all restores run energy
-  const GRACEFUL = [['graceful_hood', 35], ['graceful_cape', 40], ['graceful_top', 55], ['graceful_legs', 60], ['graceful_boots', 40]];
+  const GRACEFUL = [['graceful_hood', 35], ['graceful_cape', 40], ['graceful_top', 55], ['graceful_legs', 60], ['graceful_gloves', 30], ['graceful_boots', 40]];
   api.spawnNpc({ name: 'Grietje', at: { x: ground.x + 4, z: ground.z + 2 }, wander: 2, look: { g: 1, skin: 0, hair: 4, top: 9, legs: 5, topC: '#3f8f7a' }, eq: { head: 'graceful_hood', legs: 'graceful_legs', feet: 'graceful_boots', cape: 'graceful_cape' }, talk: 'cb_grietje', ex: 'Runs across rooftops for fun. Has opinions about your shoes.' });
   const buy = (id, cost) => p => {
     if (api.invCount(p, 'mark_of_grace') < cost) return 'poor';

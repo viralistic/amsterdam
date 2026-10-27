@@ -83,8 +83,7 @@ registry.msgHandlers['combat:arena'] = (m, ctx) => {
     </div>`);
 };
 
-// ---- per-frame: effects, animated objects, and the ArenA label instead of a Wilderness level
-let lastLabel = '';
+// ---- per-frame: effects and animated objects
 registry.frameHooks.push((now, ctx) => {
   const r = ctx.renderer;
   if (!r) return;
@@ -94,9 +93,10 @@ registry.frameHooks.push((now, ctx) => {
     f.step(t, f.obj);
   }
   for (const o of r.objs.values()) o.root.userData.cbAnim?.(performance.now());
-  const inArena = ctx.S.region?.id === 'int_cb_arena';
-  if (inArena) {
-    const w = document.getElementById('wild-level');
-    if (w && lastLabel !== w.innerHTML) { w.innerHTML = `${ctx.iconImg('arena_champion_cape', 'ico orb-ico')}<span>ArenA<br><small>Safe PvP</small></span>`; lastLabel = w.innerHTML; }
-  } else lastLabel = '';
+});
+
+// ---- ArenA pitch: anyone inside may attack anyone inside (the engine allows it for pvp interiors)
+registry.playerOptions.push((e, ctx) => {
+  if (ctx.S.region?.id !== 'int_cb_arena') return [];
+  return [{ label: 'Attack', fn: () => ctx.send({ t: 'act', kind: 'player', id: e.id, action: 'attack' }) }];
 });

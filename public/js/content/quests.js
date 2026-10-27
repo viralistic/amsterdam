@@ -10,6 +10,6 @@ registry.msgHandlers.qdaily = (m, ctx) => {
     <div style="color:${t.claimed ? '#7a7a7a' : t.done ? '#00ff80' : '#ffff00'}">${ctx.esc(t.text)}</div>
     <div style="font-size:12px;color:#c8b890">${t.claimed ? 'Reward claimed' : t.done ? 'Complete! Talk to Daan to claim.' : `Progress: ${t.have} / ${t.need}`} &middot; Reward: ${ctx.esc(t.reward)}</div></div>`).join('');
   ctx.openWindow(`Daily challenges (${m.date})`, `<div class="journal">${rows}
-    <p style="color:#c8b890">${m.bonus ? 'All three done today: bonus claimed!' : 'Finish all three for a challenge token and 500 coins.'}</p>
-    <p style="color:#c8b890">Challenge tokens: ${m.tokens}. New challenges every day at midnight (UTC).</p></div>`);
+    <div style="margin-top:8px;color:#ffb000">${m.bonus ? 'All three done today: bonus claimed!' : 'Finish all three for a challenge token and 500 coins.'}</div>
+    <div style="color:#ffb000">Challenge tokens: ${m.tokens}. New challenges every day at midnight (UTC).</div></div>`);
 };

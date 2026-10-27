@@ -14,9 +14,9 @@ export function registerThieving(api, U) {
     cb_stall_gem: { level: 75, xp: 160, respawn: 30, loot: () => { const r = Math.random(); return [r < 0.6 ? 'uncut_sapphire' : r < 0.85 ? 'uncut_emerald' : r < 0.97 ? 'uncut_ruby' : 'uncut_diamond', 'coins'].find(id => api.ITEMS[id]); } },
   };
   const market = [52.35572, 52.35562]; // north and south side of the street
-  const stalls = [['cb_stall_stroopwafel', 4.8906, 0], ['cb_stall_cheese', 4.8918, 1], ['cb_stall_fabric', 4.8930, 0], ['cb_stall_stroopwafel', 4.8942, 1], ['cb_stall_fish', 4.8954, 0], ['cb_stall_gem', 4.8966, 1], ['cb_stall_cheese', 4.8978, 0]]
+  const stalls = [['cb_stall_stroopwafel', 4.8920, 0], ['cb_stall_cheese', 4.8923, 1], ['cb_stall_fabric', 4.8926, 0], ['cb_stall_stroopwafel', 4.8929, 1], ['cb_stall_fish', 4.8932, 0], ['cb_stall_gem', 4.8935, 1], ['cb_stall_cheese', 4.8938, 0]]
     .map(([type, lon, side]) => { const t = T(market[side], lon); return api.spawnObject({ type, x: t.x, z: t.z, rot: side ? 0 : Math.PI }); });
-  const guards = [4.8912, 4.8948, 4.8972].map(lon => U.spawn(MONSTERS, 'cb_guard', T(52.35567, lon), { wander: 5 }));
+  const guards = [4.8921, 4.8927, 4.8933, 4.8939].map(lon => U.spawn(MONSTERS, 'cb_guard', T(52.35567, lon), { wander: 3 }));
   api.spawnObject({ type: 'sign', x: stalls[0].x - 3, z: stalls[0].z + 2, data: { text: 'ALBERT CUYPMARKT. Marktwachten op patrouille. Shoplifters will be chased, hit, and then chased some more.' } });
 
   for (const type of Object.keys(STALLS)) api.objectAction(type, 'Steal-from', (p, o) => {
@@ -27,7 +27,7 @@ export function registerThieving(api, U) {
     const item = s.loot();
     if (!api.canAdd(p, item, 1)) return api.msg(p, "You don't have enough inventory space.");
     // a guard within sight may notice
-    const watching = guards.filter(g => !g.dead && !g.target && api.cheb(g.x, g.z, p.x, p.z) <= 6);
+    const watching = guards.filter(g => !g.dead && !g.target && api.cheb(g.x, g.z, p.x, p.z) <= 10);
     const notice = Math.max(0.08, 0.35 - (api.lv(p, 'thieving') - s.level) * 0.008);
     if (watching.length && Math.random() < notice) {
       const g = U.pick(watching);
@@ -51,8 +51,8 @@ export function registerThieving(api, U) {
     Zakenman: { level: 55, xp: 84.3, coins: [50, 70], dmg: [2, 5], fail: 'Do you know who I am? I have a meeting at the Zuidas in five minutes!' },
   };
   const tourist = { look: { g: 0, skin: 5, hair: 4, top: 10, legs: 2 }, eq: { head: 'beanie' }, actions: ['Pickpocket'], ex: 'A tourist with a map that is upside down. Their pockets look heavy.', chatter: ['Where is ze Rijksmuseum?', 'Look, a canal! And anuzzer canal!', 'So many bicycles!'] };
-  for (const [lat, lon] of [[52.37645, 4.89725], [52.37670, 4.89760], [52.37620, 4.89700], [52.35575, 4.8925], [52.35565, 4.8960]]) api.spawnNpc({ name: 'Toerist', at: T(lat, lon), wander: 6, ...tourist, look: { ...tourist.look, g: Math.round(lat * 1e5) % 2 } });
-  for (const [lon, g] of [[4.8924, 0], [4.8936, 1], [4.8960, 0]]) api.spawnNpc({ name: 'Marktkoopman', at: T(52.35567, lon), wander: 3, look: { g, skin: g ? 2 : 3, hair: 5, top: 6, legs: 1 }, eq: { head: 'flat_cap' }, actions: ['Pickpocket'], ex: 'A trader shouting prices. The money belt is right there.', chatter: ['Kijken, kijken, kopen!', 'Drie voor een tientje!', 'Verse stroopwafels!'] });
+  for (const [lat, lon] of [[52.37645, 4.89725], [52.37670, 4.89760], [52.37620, 4.89700], [52.35575, 4.8925], [52.35565, 4.8934]]) api.spawnNpc({ name: 'Toerist', at: T(lat, lon), wander: 6, ...tourist, look: { ...tourist.look, g: Math.round(lat * 1e5) % 2 } });
+  for (const [lon, g] of [[4.8924, 0], [4.8931, 1], [4.8936, 0]]) api.spawnNpc({ name: 'Marktkoopman', at: T(52.35567, lon), wander: 3, look: { g, skin: g ? 2 : 3, hair: 5, top: 6, legs: 1 }, eq: { head: 'flat_cap' }, actions: ['Pickpocket'], ex: 'A trader shouting prices. The money belt is right there.', chatter: ['Kijken, kijken, kopen!', 'Drie voor een tientje!', 'Verse stroopwafels!'] });
   for (const [lat, lon] of [[52.33860, 4.87250], [52.33800, 4.87350], [52.33900, 4.87400]]) api.spawnNpc({ name: 'Zakenman', at: T(lat, lon), wander: 6, look: { g: 0, skin: 1, hair: 0, top: 5, legs: 5, topC: '#2a2f3a' }, actions: ['Pickpocket'], ex: 'A Zuidas businessman, on the phone about synergy. His wallet is fatter than his patience.', chatter: ['Let\'s take this offline.', 'Can you circle back on that?', 'Ik zit in een call.'] });
 
   const pickpocket = (p, npc) => {
@@ -86,7 +86,7 @@ export function registerThieving(api, U) {
 
   // ================= coin pouches
   api.itemOp('Open-all', (p, slot, item) => {
-    if (item.id !== 'coin_pouch') return;
+    if (item.id !== 'coin_pouch') return false;
     const n = api.invCount(p, 'coin_pouch');
     if (!n) return;
     const st = api.playerStore(p, 'combat');

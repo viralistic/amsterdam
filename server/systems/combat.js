@@ -44,7 +44,8 @@ export default function register(api) {
       if (!n) return api.msg(p, 'No such NPC.');
       api.teleport(p, n.x + 1, n.z, { inside: !!api.interiorAt(n.x, n.z) });
     });
-    api.command('cbdbg', p => api.msg(p, `action=${p.action ? p.action.wait + '/' + !!p.action.obj : 'none'} target=${p.target?.name || '-'} path=${p.path.length} pending=${!!p.pending}`));
+    // ::cbhp <hp> sets the hit points of the nearest monster (boss testing)
+    api.command('cbhp', (p, [hp]) => { const n = api.npcs.filter(n => !n.dead && n.def.combat && api.cheb(n.x, n.z, p.x, p.z) < 30).sort((a, b) => api.cheb(a.x, a.z, p.x, p.z) - api.cheb(b.x, b.z, p.x, p.z))[0]; if (n) { n.hp = Math.max(1, +hp || 1); api.msg(p, `${n.name} now has ${n.hp} hp.`); } });
     api.command('cbtele', (p, [k]) => {
       const t = places[k];
       if (!t) return api.msg(p, 'Places: ' + Object.keys(places).join(', '));

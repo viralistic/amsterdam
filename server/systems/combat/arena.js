@@ -9,7 +9,7 @@ export function registerArena(api, U) {
   const lobbySpawn = { x: AX + 8, z: AZ + 10 };
   api.interior({ id: 'cb_arena_lobby', name: 'Johan Cruijff ArenA', rooms: [{ ...lobby, floor: '#5a5a62', wall: '#c81e2e', h: 4 }] });
   api.interior({
-    id: 'cb_arena', name: 'ArenA pitch (safe PvP)', pvp: true, safeDeath: true, respawn: lobbySpawn, wild: 1,
+    id: 'cb_arena', name: 'ArenA pitch (safe PvP)', pvp: true, safeDeath: true, respawn: lobbySpawn,
     rooms: [{ ...pit, floor: '#3f7a2a', wall: '#d8d8dc', h: 2.5 }],
     floors: [
       ['#f2f2f2', [AX + 64.7, AZ + 1, AX + 65.3, AZ + 1, AX + 65.3, AZ + 35, AX + 64.7, AZ + 35]],
@@ -33,7 +33,8 @@ export function registerArena(api, U) {
   const W = api.worldStore('combat');
   const A = W.arena ??= { season: 0, players: {}, history: [], tourney: { slot: 0, active: false, scores: {} }, pending: {} };
   A.pending ??= {}; A.history ??= []; A.tourney ??= { slot: 0, active: false, scores: {} };
-  const seasonOf = t => Math.floor(t / WEEK);
+  const SEASON0 = Date.UTC(2026, 0, 5); // a Monday: season 1 starts here
+  const seasonOf = t => Math.floor((t - SEASON0) / WEEK) + 1;
   const rows = () => Object.entries(A.players).map(([key, r]) => ({ key, ...r })).sort((a, b) => b.pts - a.pts || b.k - a.k);
   const checkSeason = () => {
     const s = seasonOf(api.now());
@@ -68,12 +69,9 @@ export function registerArena(api, U) {
     api.touch();
   });
 
-  // ---- the region: friendly message instead of the Wilderness warning, and the board update
-  api.onRegionChange((p, r, old) => {
-    if (r.id === 'int_cb_arena') {
-      p.cbWarned = p.warnedWild; p.warnedWild = true;
-      api.msg(p, 'ArenA pitch: anyone here may attack you, but you keep all your items when you die.', 'duel');
-    } else if (old === 'int_cb_arena') p.warnedWild = p.cbWarned || false;
+  // ---- entering the pitch
+  api.onRegionChange((p, r) => {
+    if (r.id === 'int_cb_arena') api.msg(p, 'ArenA pitch: anyone here may attack you (right-click a player), but you keep all your items when you die.', 'duel');
   });
 
   // ---- leaderboard window
@@ -84,7 +82,7 @@ export function registerArena(api, U) {
     const t = A.tourney, now = api.now();
     const nextSlot = (Math.floor(now / HALF_HOUR) + 1) * HALF_HOUR;
     api.send(p, {
-      t: 'combat:arena', season: A.season, seasonEnds: (A.season + 1) * WEEK,
+      t: 'combat:arena', season: A.season, seasonEnds: SEASON0 + A.season * WEEK,
       top: all.slice(0, 10).map(r => ({ name: r.name, k: r.k, d: r.d, pts: r.pts, best: r.best })),
       you: me ? { rank: all.findIndex(r => r.key === p.key) + 1, ...me } : null,
       tourney: { active: t.active, endsAt: t.active ? t.endsAt : 0, nextAt: t.active ? 0 : nextSlot, top: Object.values(t.scores).sort((a, b) => b.k - a.k).slice(0, 5), last: t.last || null },

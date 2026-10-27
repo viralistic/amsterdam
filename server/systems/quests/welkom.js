@@ -53,7 +53,7 @@ export default function welkom(api, lib) {
       { act: p => { setQ(p, ID, 2); if (!lib.has(p, 'small_net')) lib.give(p, 'small_net'); return null; } },
       { item: 'small_net', npc: 'Wim gives you a small net. It smells like it has done this before.' },
     ],
-    s2: [{ if: p => lib.hasOrMissing(p, 'raw_shrimps'), then: 's2done', else: 's2wait' }],
+    s2: [{ if: p => lib.hasOrMissing(p, 'raw_shrimps') || lib.has(p, 'shrimps'), then: 's2done', else: 's2wait' }],
     s2wait: [
       { npc: 'The fishing spot is in the harbour, just east of me. Right-click the bubbles and choose Net.' },
       { if: p => !lib.has(p, 'small_net') && lib.exists('small_net'), then: 's2net', else: 'end' },
@@ -140,7 +140,7 @@ export default function welkom(api, lib) {
       first: 2, every: 4, anim: 'cook', name: 'cooking',
       step: pl => {
         if (!api.invRemove(pl, 'raw_shrimps', 1)) return false;
-        const burn = Math.max(0.05, 0.35 - api.lv(pl, 'cooking') * 0.03);
+        const burn = Math.max(0.05, 0.25 - api.lv(pl, 'cooking') * 0.03);
         if (Math.random() < burn && lib.exists('burnt_fish')) { api.invAdd(pl, 'burnt_fish', 1); msg(pl, 'You accidentally burn the shrimps.'); }
         else { api.invAdd(pl, 'shrimps', 1); api.addXp(pl, 'cooking', 30); msg(pl, 'The shrimps are now nicely cooked.'); }
         return api.hasItem(pl, 'raw_shrimps');
