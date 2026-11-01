@@ -3,7 +3,9 @@ import { registry } from '../../registry.js';
 import { toTile } from '/shared/geo.js';
 
 const KEY = 'atmo.settings';
-const DEFAULTS = { master: 0.8, music: 0.45, sfx: 0.8, amb: 0.7, weather: true, daynight: true, brightness: 1, musicAuto: true, musicOn: true };
+// the single-player browser preview starts in clear daylight; both can be switched on in the settings tab
+const PREVIEW = !!globalThis.AMSESCAPE_PREVIEW;
+const DEFAULTS = { master: 0.8, music: 0.45, sfx: 0.8, amb: 0.7, weather: !PREVIEW, daynight: !PREVIEW, brightness: 1, musicAuto: true, musicOn: true };
 
 const fallbackStore = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
 export const store = () => registry.ctx?.store || fallbackStore;
